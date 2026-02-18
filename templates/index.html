@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lexicon - Literary Theme Analyzer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div id="root">
+        <header>
+            <h1>Lexicon</h1>
+            <p class="subtitle">Literary Theme Analyzer</p>
+        </header>
+
+        <main>
+            <form method="post" enctype="multipart/form-data" class="analysis-form">
+                <section>
+                    <h3>Upload Book (.txt or .pdf)</h3>
+                    <input type="file" name="file" class="file-input">
+                </section>
+
+                <section>
+                    <h3>Theme Search Mode</h3>
+                    <input type="text" name="theme" placeholder="e.g., courage">
+                </section>
+
+                <section>
+                    <h3>Page Theme Detection (PDF only)</h3>
+                    <input type="number" name="page_number" placeholder="Enter page number">
+                </section>
+
+                <input type="submit" value="Analyze" class="submit-btn">
+            </form>
+            <div class="results-content">
+    {% if results %}
+        {% for r in results %}
+            <div class="result-card">
+                {{ r|safe }}
+            </div>
+        {% endfor %}
+    {% else %}
+        <p class="empty-msg">Waiting for analysis...</p>
+    {% endif %}
+</div>
+        </main>
+
+        <footer>
+            <p>&copy; 2024 Lexicon. All rights reserved.</p>
+        </footer>
+    </div>
+  
+
+   
+            
+
+
