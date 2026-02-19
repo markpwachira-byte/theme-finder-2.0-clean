@@ -2,8 +2,15 @@ from flask import Flask, request, render_template
 import re
 import pdfplumber
 import os
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
+
+# Step 2 setup: Create a folder to keep the file "remembered" during the session
+UPLOAD_FOLDER = 'uploads'
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 theme_keywords = {
     "education": ["education", "learning", "school", "teacher", "classroom", "knowledge", "study", "exam"],
@@ -11,15 +18,37 @@ theme_keywords = {
     "courage": ["courage", "bravery", "heroism", "sacrifice", "fearless"]
 }
 
-def highlight_keywords(paragraph, keywords):
-    for kw in keywords:
-        paragraph = re.sub(rf"\b({kw})\b", r"<b>\1</b>", paragraph, flags=re.IGNORECASE)
-    return paragraph
+# Step 1: Improved Highlighter (Deterministic Logic)
+def highlight_content(text, keywords):
+    # 1. Clean up newlines so sentences don't break mid-way
+    text = text.replace('\n', ' ')
+    
+    # 2. Split into sentences using regex (looks for . ! or ?)
+    sentences = re.split(r'(?<=[.!?]) +', text)
+    highlighted_page = []
+
+    for sentence in sentences:
+        found_in_sentence = False
+        temp_sentence = sentence
+        
+        for kw in keywords:
+            # Check if keyword exists in this sentence
+            if re.search(rf"\b{kw}\b", temp_sentence, flags=re.IGNORECASE):
+                found_in_sentence = True
+                # Bold the keyword
+                temp_sentence = re.sub(rf"\b({kw})\b", r"<b>\1</b>", temp_sentence, flags=re.IGNORECASE)
+        
+        if found_in_sentence:
+            # Wrap the matching sentence in a 'mark' tag for the user
+            highlighted_page.append(f"<mark style='background-color: #fff3cd;'>{temp_sentence}</mark>")
+        else:
+            highlighted_page.append(temp_sentence)
+
+    return " ".join(highlighted_page)
 
 @app.route("/ping")
 def ping():
     return "OK", 200
-
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -30,16 +59,23 @@ def index():
         theme = request.form.get("theme", "").lower().strip()
         page_number = request.form.get("page_number", "").strip()
 
-        if not file:
+        # Step 2: Persistence Logic - Save file so it stays available
+        if file and file.filename != '':
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+        else:
+            # If no new file uploaded, check if one was already there (for re-analysis)
+            files = os.listdir(app.config['UPLOAD_FOLDER'])
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], files[0]) if files else None
+
+        if not filepath:
             results = ["Please upload a file."]
         else:
-            filename = file.filename.lower()
             text = ""
-
-            # ===== HANDLE PDF =====
-            if filename.endswith(".pdf"):
-                import pdfplumber
-                with pdfplumber.open(file) as pdf:
+            # Extract Text Logic
+            if filepath.endswith(".pdf"):
+                with pdfplumber.open(filepath) as pdf:
                     if page_number and page_number.isdigit():
                         page_idx = int(page_number) - 1
                         if 0 <= page_idx < len(pdf.pages):
@@ -49,46 +85,36 @@ def index():
                     else:
                         for page in pdf.pages:
                             text += (page.extract_text() or "") + "\n"
+            elif filepath.endswith(".txt"):
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    text = f.read()
 
-            # ===== HANDLE TXT =====
-            elif filename.endswith(".txt"):
-                text = file.read().decode("utf-8")
-            else:
-                results = ["Unsupported file type."]
+            # ANALYSIS LOGIC (The Deterministic AI Part)
+            if text:
+                if theme and theme in theme_keywords:
+                    keywords = theme_keywords[theme]
+                    # We now return the FULL text with highlights instead of just snippets
+                    highlighted_result = highlight_content(text, keywords)
+                    results = [highlighted_result]
+                
+                elif page_number:
+                    detected = []
+                    for t_name, kws in theme_keywords.items():
+                        score = sum(1 for kw in kws if re.search(rf"\b{kw}\b", text, re.I))
+                        if score > 0:
+                            detected.append((t_name, score))
+                    
+                    if detected:
+                        results = [f"Detected Theme: <b>{t}</b> (Score: {s})" for t, s in sorted(detected, key=lambda x: x[1], reverse=True)]
 
-            # ===== MODE 1: THEME SEARCH =====
-            if theme and theme in theme_keywords:
-                paragraphs = [p.strip() for p in text.split("\n") if len(p.strip()) > 20]
-                keywords = theme_keywords[theme]
-                scored = sorted(
-                    [(p, sum(1 for kw in keywords if kw.lower() in p.lower())) for p in paragraphs],
-                    key=lambda x: x[1],
-                    reverse=True
-                )
-                results = [highlight_keywords(p, keywords) for p, s in scored if s > 0][:5]
-
-            # ===== MODE 2: PAGE THEME DETECTION =====
-            elif page_number:
-                detected = []
-                for t_name, kws in theme_keywords.items():
-                    score = sum(1 for kw in kws if kw.lower() in text.lower())
-                    if score > 0:
-                        detected.append((t_name, score))
-                results = [f"Detected Theme: <b>{t}</b> (Score: {s})" for t, s in sorted(detected, key=lambda x: x[1], reverse=True)]
-
-            # ===== DEFAULT IF NOTHING FOUND =====
             if not results:
-                results = ["No results found."]
+                results = ["No themes found on this page."]
 
-    # Always return the template
     return render_template("index.html", results=results)
 
-
 if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("PORT", 5000))  # Use Render's PORT or default to 5000 locally
+    port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
-
 
 
 
