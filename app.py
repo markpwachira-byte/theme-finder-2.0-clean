@@ -14,7 +14,6 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 theme_keywords = {
     "education": ["education", "learning", "school", "teacher", "classroom", "knowledge", "study", "exam"],
-    "betrayal": ["betrayal", "deception", "cheating", "mistrust", "treachery"],
     "courage": ["courage", "bravery", "heroism", "sacrifice", "fearless"],
     "corruption": ["corruption", "bribery", "impunity", "misuse of power", "grabbing", "embezzlement", "nepotism", "tender", "municipality"],
     "betrayal": ["betrayal", "disloyalty", "treachery", "double-cross", "unfaithful", "abandon", "sell-out"],
