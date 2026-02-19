@@ -69,3 +69,59 @@ input, input[type="number"], .file-input {
 
 /* This makes keywords stand out in the paper style */
 b { background: hsl(35, 40%, 94%); color: var(--color-primary); padding: 0 3px; }
+
+/* Keep all your existing code above this line */
+
+/* 1. Necessary: The Drag & Drop Box Style */
+.file-upload-wrapper {
+    position: relative;
+    border: 2px dashed var(--color-border);
+    border-radius: 8px;
+    padding: 30px;
+    text-align: center;
+    background-color: white;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    margin-bottom: 10px;
+}
+
+/* Visual feedback when a file is dragged over */
+.file-upload-wrapper.dragover {
+    border-color: var(--color-primary);
+    background-color: hsl(215, 30%, 96%);
+}
+
+/* This hides the default "Choose File" button so we can style the box */
+.file-upload-wrapper input[type="file"] {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+/* 2. Necessary: Highlighting Style */
+/* This makes the yellow sentence highlight look clean */
+mark {
+    background-color: hsl(45, 100%, 85%);
+    color: inherit;
+    padding: 2px 0;
+}
+
+/* 3. Necessary: Mobile Responsiveness */
+@media (max-width: 600px) {
+    body {
+        padding: 15px;
+    }
+    #root {
+        padding: 20px;
+    }
+    header h1 {
+        font-size: 2.2rem;
+    }
+    .submit-btn {
+        width: 100%; /* Makes it easier to tap on phones */
+    }
+}

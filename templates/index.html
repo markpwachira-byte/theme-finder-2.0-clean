@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Literary Theme Analyzer-find themes</title>
+    <title>Lexicon | Theme Analyzer</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -17,10 +17,16 @@
         </header>
 
         <main>
-            <form method="post" enctype="multipart/form-data" class="analysis-form">
+            <form method="post" enctype="multipart/form-data" class="analysis-form" id="analysisForm">
                 <section>
                     <h3>Upload Book (.txt or .pdf)</h3>
-                    <input type="file" name="file" class="file-input">
+                    <div class="file-upload-wrapper" id="dropZone">
+                        <p id="fileLabel">📄 Drag & Drop or Click to Upload</p>
+                        <input type="file" name="file" class="file-input" id="fileInput">
+                    </div>
+                    <p style="font-size: 0.8rem; color: #666; margin-top: 5px;">
+                        Note: If you already uploaded a file, you can just change the theme or page and click Analyze.
+                    </p>
                 </section>
 
                 <section>
@@ -33,25 +39,62 @@
                     <input type="number" name="page_number" placeholder="Enter page number">
                 </section>
 
-                <input type="submit" value="Analyze" class="submit-btn">
+                <input type="submit" value="Analyze" class="submit-btn" id="submitBtn">
             </form>
+
             <div class="results-content">
-    {% if results %}
-        {% for r in results %}
-            <div class="result-card">
-                {{ r|safe }}
+                {% if results %}
+                    <h2 style="margin-bottom: 20px; font-family: 'Playfair Display';">Analysis Results</h2>
+                    {% for r in results %}
+                        <div class="result-card">
+                            {{ r|safe }}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="empty-msg">Waiting for analysis...</p>
+                {% endif %}
             </div>
-        {% endfor %}
-    {% else %}
-        <p class="empty-msg">Waiting for analysis...</p>
-    {% endif %}
-</div>
         </main>
 
         <footer>
             <p>&copy; 2024 Lexicon. All rights reserved.</p>
         </footer>
     </div>
+
+    <script>
+        const form = document.getElementById('analysisForm');
+        const btn = document.getElementById('submitBtn');
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileLabel = document.getElementById('fileLabel');
+
+        // 1. Loading State
+        form.onsubmit = function() {
+            btn.value = "Analyzing Context...";
+            btn.style.opacity = "0.7";
+            btn.style.cursor = "not-allowed";
+        };
+
+        // 2. Drag & Drop Visual Feedback
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        // 3. Update Text when file is selected
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                fileLabel.innerText = "Selected: " + fileInput.files[0].name;
+                dropZone.classList.add('selected');
+            }
+        });
+    </script>
+</body>
+</html>
   
 
    
