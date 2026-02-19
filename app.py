@@ -16,6 +16,11 @@ def highlight_keywords(paragraph, keywords):
         paragraph = re.sub(rf"\b({kw})\b", r"<b>\1</b>", paragraph, flags=re.IGNORECASE)
     return paragraph
 
+@app.route("/ping")
+def ping():
+    return "OK", 200
+
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     results = []
