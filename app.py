@@ -15,7 +15,14 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 theme_keywords = {
     "education": ["education", "learning", "school", "teacher", "classroom", "knowledge", "study", "exam"],
     "betrayal": ["betrayal", "deception", "cheating", "mistrust", "treachery"],
-    "courage": ["courage", "bravery", "heroism", "sacrifice", "fearless"]
+    "courage": ["courage", "bravery", "heroism", "sacrifice", "fearless"],
+    "corruption": ["corruption", "bribery", "impunity", "misuse of power", "grabbing", "embezzlement", "nepotism", "tender", "municipality"],
+    "betrayal": ["betrayal", "disloyalty", "treachery", "double-cross", "unfaithful", "abandon", "sell-out"],
+    "leadership": ["leadership", "governance", "dictatorship", "regime", "authority", "power struggle", "politics", "heads of state"],
+    "change": ["change", "transformation", "reform", "activism", "revolution", "innovation", "protest", "the Samaritan app"],
+    "poverty": ["poverty", "struggle", "inequality", "deprivation", "destitution", "suffering", "slums", "underprivileged"],
+    "technology": ["technology", "digital", "app", "innovation", "social media", "internet", "online", "software"]
+
 }
 
 # Step 1: Improved Highlighter (Deterministic Logic)
