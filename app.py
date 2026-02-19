@@ -21,7 +21,6 @@ theme_keywords = {
     "change": ["change", "transformation", "reform", "activism", "revolution", "innovation", "protest", "the Samaritan app"],
     "poverty": ["poverty", "struggle", "inequality", "deprivation", "destitution", "suffering", "slums", "underprivileged"],
     "technology": ["technology", "digital", "app", "innovation", "social media", "internet", "online", "software"]
-
 }
 
 # Step 1: Improved Highlighter (Deterministic Logic)
@@ -38,14 +37,12 @@ def highlight_content(text, keywords):
         temp_sentence = sentence
         
         for kw in keywords:
-            # Check if keyword exists in this sentence
             if re.search(rf"\b{kw}\b", temp_sentence, flags=re.IGNORECASE):
                 found_in_sentence = True
-                # Bold the keyword
                 temp_sentence = re.sub(rf"\b({kw})\b", r"<b>\1</b>", temp_sentence, flags=re.IGNORECASE)
         
         if found_in_sentence:
-            # Wrap the matching sentence in a 'mark' tag for the user
+            # Wrap matching sentence in 'mark' tag
             highlighted_page.append(f"<mark style='background-color: #fff3cd;'>{temp_sentence}</mark>")
         else:
             highlighted_page.append(temp_sentence)
@@ -65,62 +62,71 @@ def index():
         theme = request.form.get("theme", "").lower().strip()
         page_number = request.form.get("page_number", "").strip()
 
-        # Step 2: Persistence Logic - Save file so it stays available
+        # Persistence Logic
         if file and file.filename != '':
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
         else:
-            # If no new file uploaded, check if one was already there (for re-analysis)
             files = os.listdir(app.config['UPLOAD_FOLDER'])
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], files[0]) if files else None
 
         if not filepath:
             results = ["Please upload a file."]
         else:
-            text = ""
-            # Extract Text Logic
-            if filepath.endswith(".pdf"):
-                with pdfplumber.open(filepath) as pdf:
-                    if page_number and page_number.isdigit():
-                        page_idx = int(page_number) - 1
-                        if 0 <= page_idx < len(pdf.pages):
-                            text = pdf.pages[page_idx].extract_text() or ""
-                        else:
-                            results = ["Page number out of range."]
-                    else:
-                        for page in pdf.pages:
-                            text += (page.extract_text() or "") + "\n"
-            elif filepath.endswith(".txt"):
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    text = f.read()
-
-            # ANALYSIS LOGIC (The Deterministic AI Part)
-            if text:
-                if theme and theme in theme_keywords:
-                    keywords = theme_keywords[theme]
-                    # We now return the FULL text with highlights instead of just snippets
-                    highlighted_result = highlight_content(text, keywords)
-                    results = [highlighted_result]
+            with pdfplumber.open(filepath) as pdf:
                 
-                elif page_number:
-                    detected = []
-                    for t_name, kws in theme_keywords.items():
-                        score = sum(1 for kw in kws if re.search(rf"\b{kw}\b", text, re.I))
-                        if score > 0:
-                            detected.append((t_name, score))
-                    
-                    if detected:
-                        results = [f"Detected Theme: <b>{t}</b> (Score: {s})" for t, s in sorted(detected, key=lambda x: x[1], reverse=True)]
+                # MODE A: Theme Search (Whole Book)
+                if theme and theme in theme_keywords and not page_number:
+                    keywords = theme_keywords[theme]
+                    for i, page in enumerate(pdf.pages):
+                        page_text = page.extract_text()
+                        if page_text and any(re.search(rf"\b{kw}\b", page_text, re.I) for kw in keywords):
+                            highlighted = highlight_content(page_text, keywords)
+                            results.append(f"<div class='page-address'>Page {i+1}</div>{highlighted}")
+                
+                # MODE B: Specific Page Number Analysis (FIXED WITH HIGHLIGHTING)
+                elif page_number and page_number.isdigit():
+                    page_idx = int(page_number) - 1
+                    if 0 <= page_idx < len(pdf.pages):
+                        text = pdf.pages[page_idx].extract_text() or ""
+                        
+                        all_relevant_kws = []
+                        detected_labels = []
+                        
+                        # Identify every theme present on this specific page
+                        for t_name, kws in theme_keywords.items():
+                            theme_found = False
+                            for kw in kws:
+                                if re.search(rf"\b{kw}\b", text, re.I):
+                                    all_relevant_kws.append(kw)
+                                    theme_found = True
+                            
+                            if theme_found:
+                                score = sum(1 for kw in kws if re.search(rf"\b{kw}\b", text, re.I))
+                                detected_labels.append(f"<b>{t_name.upper()}</b> ({score})")
+                        
+                        # Apply highlighting using keywords from ALL detected themes
+                        if all_relevant_kws:
+                            display_text = highlight_content(text, list(set(all_relevant_kws)))
+                            summary = " | ".join(detected_labels)
+                        else:
+                            display_text = text.replace('\n', '<br>')
+                            summary = "No specific themes detected"
+                            
+                        results = [f"<div class='page-address'>Page {page_number} Analysis</div><p style='color: #666; font-size: 0.9rem;'>Themes: {summary}</p><hr>{display_text}"]
+                    else:
+                        results = ["Page number out of range."]
 
             if not results:
-                results = ["No themes found on this page."]
+                results = ["No themes found matching your search."]
 
     return render_template("index.html", results=results)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+
 
 
 

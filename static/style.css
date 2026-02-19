@@ -14,7 +14,6 @@ body {
   color: var(--color-foreground);
   margin: 0;
   padding: 40px;
-  /* Adds the subtle gradient from your reference */
   background-image: radial-gradient(at 0% 0%, hsla(35, 30%, 90%, 0.3) 0px, transparent 50%);
 }
 
@@ -46,6 +45,7 @@ input, input[type="number"], .file-input {
   border: 1px solid var(--color-border);
   border-radius: 4px;
   background: white;
+  box-sizing: border-box; /* Necessary fix so inputs don't spill out */
 }
 
 .submit-btn {
@@ -58,19 +58,45 @@ input, input[type="number"], .file-input {
   cursor: pointer;
 }
 
-.results-content { margin-top: 40px; border-top: 1px solid var(--color-border); padding-top: 20px; }
-.result-card { 
-    background: white; 
-    padding: 20px; 
-    margin-bottom: 15px; 
-    border-left: 4px solid var(--color-primary);
-    border-bottom: 1px solid var(--color-border);
+/* IMPROVED: Results Content Container */
+.results-content { 
+    margin-top: 40px; 
+    border-top: 1px solid var(--color-border); 
+    padding-top: 20px; 
 }
 
-/* This makes keywords stand out in the paper style */
-b { background: hsl(35, 40%, 94%); color: var(--color-primary); padding: 0 3px; }
+/* IMPROVED: Individual Result Cards */
+.result-card { 
+    background: white; 
+    padding: 30px; 
+    margin-bottom: 30px; /* More space between different pages */
+    border-left: 5px solid var(--color-primary);
+    border-radius: 0 8px 8px 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    line-height: 1.8; /* Academic spacing for readability */
+}
 
-/* Keep all your existing code above this line */
+/* NEW: The Page Address Badge */
+.page-address {
+    display: inline-block;
+    background-color: var(--color-primary);
+    color: white;
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* NEW: Paragraph spacing inside cards */
+.result-card p {
+    margin-bottom: 1.2em;
+}
+
+/* This makes keywords stand out */
+b { background: hsl(35, 40%, 94%); color: var(--color-primary); padding: 0 3px; }
 
 /* 1. Necessary: The Drag & Drop Box Style */
 .file-upload-wrapper {
@@ -85,13 +111,11 @@ b { background: hsl(35, 40%, 94%); color: var(--color-primary); padding: 0 3px; 
     margin-bottom: 10px;
 }
 
-/* Visual feedback when a file is dragged over */
 .file-upload-wrapper.dragover {
     border-color: var(--color-primary);
     background-color: hsl(215, 30%, 96%);
 }
 
-/* This hides the default "Choose File" button so we can style the box */
 .file-upload-wrapper input[type="file"] {
     position: absolute;
     width: 100%;
@@ -103,7 +127,6 @@ b { background: hsl(35, 40%, 94%); color: var(--color-primary); padding: 0 3px; 
 }
 
 /* 2. Necessary: Highlighting Style */
-/* This makes the yellow sentence highlight look clean */
 mark {
     background-color: hsl(45, 100%, 85%);
     color: inherit;
@@ -112,16 +135,8 @@ mark {
 
 /* 3. Necessary: Mobile Responsiveness */
 @media (max-width: 600px) {
-    body {
-        padding: 15px;
-    }
-    #root {
-        padding: 20px;
-    }
-    header h1 {
-        font-size: 2.2rem;
-    }
-    .submit-btn {
-        width: 100%; /* Makes it easier to tap on phones */
-    }
+    body { padding: 15px; }
+    #root { padding: 20px; }
+    header h1 { font-size: 2.2rem; }
+    .submit-btn { width: 100%; }
 }
