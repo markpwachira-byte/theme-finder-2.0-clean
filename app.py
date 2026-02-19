@@ -57,10 +57,13 @@ def index():
                 if score > 0: detected.append((t_name, score))
             results = [f"Detected Theme: <b>{t}</b> (Score: {s})" for t, s in sorted(detected, key=lambda x: x[1], reverse=True)]
 
-    return render_template("index.html", results=results)
+        return render_template("index.html", results=results)
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    import os
+    port = int(os.environ.get("PORT", 5000))  # Use Render's PORT or default to 5000 locally
+    app.run(host="0.0.0.0", port=port, debug=True)
+
 
 
 
