@@ -1,0 +1,36 @@
+{
+  "themes": {
+    "education": {
+      "anchors": {"education": 1.0, "learning": 0.7, "school": 0.5, "teacher": 0.7, "classroom": 0.8, "knowledge": 0.5, "study": 0.4, "exam": 0.9},
+      "vetoes": ["fish", "shiver", "ocean", "swimming", "fry"]
+    },
+    "courage": {
+      "anchors": {"courage": 1.0, "bravery": 1.0, "heroism": 1.0, "sacrifice": 0.8, "fearless": 0.9},
+      "vetoes": []
+    },
+    "corruption": {
+      "anchors": {"corruption": 1.0, "bribery": 1.0, "impunity": 0.9, "misuse of power": 1.0, "grabbing": 0.7, "embezzlement": 1.0, "nepotism": 0.9, "tender": 0.8, "municipality": 0.4},
+      "vetoes": ["tender meat", "tender heart", "municipality bins"]
+    },
+    "betrayal": {
+      "anchors": {"betrayal": 1.0, "disloyalty": 1.0, "treachery": 1.0, "double-cross": 1.0, "unfaithful": 0.8, "abandon": 0.5, "sell-out": 0.8},
+      "vetoes": []
+    },
+    "leadership": {
+      "anchors": {"leadership": 1.0, "governance": 0.9, "dictatorship": 1.0, "regime": 1.0, "authority": 0.7, "power struggle": 1.0, "politics": 0.6, "heads of state": 1.0},
+      "vetoes": ["father", "biological", "priest"]
+    },
+    "change": {
+      "anchors": {"change": 0.4, "transformation": 0.8, "reform": 0.9, "activism": 0.9, "revolution": 1.0, "innovation": 0.8, "protest": 0.9, "the Samaritan app": 1.0},
+      "vetoes": ["small change", "loose change", "change clothes"]
+    },
+    "poverty": {
+      "anchors": {"poverty": 1.0, "struggle": 0.5, "inequality": 0.8, "deprivation": 0.9, "destitution": 1.0, "suffering": 0.5, "slums": 0.9, "underprivileged": 0.9},
+      "vetoes": []
+    },
+    "technology": {
+      "anchors": {"technology": 1.0, "digital": 0.9, "app": 0.8, "innovation": 0.7, "social media": 1.0, "internet": 1.0, "online": 0.8, "software": 0.9},
+      "vetoes": []
+    }
+  }
+}

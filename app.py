@@ -2,131 +2,193 @@ from flask import Flask, request, render_template
 import re
 import pdfplumber
 import os
+import sqlite3
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
-# Step 2 setup: Create a folder to keep the file "remembered" during the session
+# ==============================
+# AI KNOWLEDGE BASE (The Brain)
+# ==============================
+ai_knowledge = {
+    "education": {
+        "anchors": {"education": 1.0, "learning": 0.7, "school": 0.5, "teacher": 0.7, "classroom": 0.8, "knowledge": 0.5, "study": 0.4, "exam": 0.9},
+        "vetoes": ["fish", "shiver", "swimming", "ocean", "fry"]
+    },
+    "courage": {
+        "anchors": {"courage": 1.0, "bravery": 1.0, "heroism": 1.0, "sacrifice": 0.8, "fearless": 0.9},
+        "vetoes": []
+    },
+    "corruption": {
+        "anchors": {"corruption": 1.0, "bribery": 1.0, "impunity": 0.9, "misuse of power": 1.0, "grabbing": 0.7, "embezzlement": 1.0, "nepotism": 0.9, "tender": 0.8, "municipality": 0.4},
+        "vetoes": ["tender heart", "tender meat"]
+    },
+    "betrayal": {
+        "anchors": {"betrayal": 1.0, "disloyalty": 1.0, "treachery": 1.0, "double-cross": 1.0, "unfaithful": 0.8, "abandon": 0.5, "sell-out": 0.8},
+        "vetoes": []
+    },
+    "leadership": {
+        "anchors": {"leadership": 1.0, "governance": 0.9, "dictatorship": 1.0, "regime": 1.0, "authority": 0.7, "power struggle": 1.0, "politics": 0.6, "heads of state": 1.0},
+        "vetoes": ["biological father", "priest", "mountain peak"]
+    },
+    "change": {
+        "anchors": {"change": 0.4, "transformation": 0.8, "reform": 0.9, "activism": 0.9, "revolution": 1.0, "innovation": 0.8, "protest": 0.9, "the Samaritan app": 1.0},
+        "vetoes": ["small change", "loose change", "change clothes"]
+    },
+    "poverty": {
+        "anchors": {"poverty": 1.0, "struggle": 0.5, "inequality": 0.8, "deprivation": 0.9, "destitution": 1.0, "suffering": 0.5, "slums": 0.9, "underprivileged": 0.9},
+        "vetoes": []
+    },
+    "technology": {
+        "anchors": {"technology": 1.0, "digital": 0.9, "app": 0.8, "innovation": 0.7, "social media": 1.0, "internet": 1.0, "online": 0.8, "software": 0.9},
+        "vetoes": []
+    }
+}
+
+def get_db():
+    conn = sqlite3.connect("library.db")
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    conn = get_db()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS books (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT,
+            filepath TEXT,
+            text TEXT,
+            date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+init_db()
+
 UPLOAD_FOLDER = 'uploads'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-theme_keywords = {
-    "education": ["education", "learning", "school", "teacher", "classroom", "knowledge", "study", "exam"],
-    "courage": ["courage", "bravery", "heroism", "sacrifice", "fearless"],
-    "corruption": ["corruption", "bribery", "impunity", "misuse of power", "grabbing", "embezzlement", "nepotism", "tender", "municipality"],
-    "betrayal": ["betrayal", "disloyalty", "treachery", "double-cross", "unfaithful", "abandon", "sell-out"],
-    "leadership": ["leadership", "governance", "dictatorship", "regime", "authority", "power struggle", "politics", "heads of state"],
-    "change": ["change", "transformation", "reform", "activism", "revolution", "innovation", "protest", "the Samaritan app"],
-    "poverty": ["poverty", "struggle", "inequality", "deprivation", "destitution", "suffering", "slums", "underprivileged"],
-    "technology": ["technology", "digital", "app", "innovation", "social media", "internet", "online", "software"]
-}
+# ==============================
+# AI HIGHLIGHTER (Context-Aware)
+# ==============================
+def highlight_content(text, theme_name):
+    knowledge = ai_knowledge.get(theme_name)
+    if not knowledge:
+        return text.replace('\n', ' '), "General content analysis performed."
 
-# Step 1: Improved Highlighter (Deterministic Logic)
-def highlight_content(text, keywords):
-    # 1. Clean up newlines so sentences don't break mid-way
+    anchors = knowledge["anchors"]
+    vetoes = knowledge["vetoes"]
+
     text = text.replace('\n', ' ')
-    
-    # 2. Split into sentences using regex (looks for . ! or ?)
     sentences = re.split(r'(?<=[.!?]) +', text)
     highlighted_page = []
+    found_keywords = []
 
     for sentence in sentences:
-        found_in_sentence = False
+        if any(re.search(rf"\b{v}\b", sentence, re.I) for v in vetoes):
+            highlighted_page.append(sentence)
+            continue
+
+        score = 0
         temp_sentence = sentence
+        found_any = False
         
-        for kw in keywords:
-            if re.search(rf"\b{kw}\b", temp_sentence, flags=re.IGNORECASE):
-                found_in_sentence = True
+        for kw, weight in anchors.items():
+            if re.search(rf"\b{kw}\b", sentence, flags=re.IGNORECASE):
+                score += weight
+                found_any = True
+                found_keywords.append(kw.lower())
                 temp_sentence = re.sub(rf"\b({kw})\b", r"<b>\1</b>", temp_sentence, flags=re.IGNORECASE)
-        
-        if found_in_sentence:
-            # Wrap matching sentence in 'mark' tag
+
+        if found_any and score > 0.4:
             highlighted_page.append(f"<mark style='background-color: #fff3cd;'>{temp_sentence}</mark>")
         else:
-            highlighted_page.append(temp_sentence)
+            highlighted_page.append(sentence)
 
-    return " ".join(highlighted_page)
+    # Generate the "Why" logic
+    unique_kw = sorted(list(set(found_keywords)))
+    if unique_kw:
+        assessment = f"The AI identified the '{theme_name}' theme based on the presence of: {', '.join(unique_kw[:3])}."
+    else:
+        assessment = "No strong thematic evidence found on this page."
 
-@app.route("/ping")
-def ping():
-    return "OK", 200
+    return " ".join(highlighted_page), assessment
 
 @app.route("/", methods=["GET", "POST"])
 def index():
     results = []
+    conn = get_db()
+    library_books = conn.execute("SELECT id, title, filepath FROM books ORDER BY date_added DESC").fetchall()
+    conn.close()
 
     if request.method == "POST":
         file = request.files.get("file")
         theme = request.form.get("theme", "").lower().strip()
         page_number = request.form.get("page_number", "").strip()
+        selected_book_id = request.form.get("selected_book_id")
 
-        # Persistence Logic
+        filepath = None
+
         if file and file.filename != '':
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
-        else:
-            files = os.listdir(app.config['UPLOAD_FOLDER'])
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], files[0]) if files else None
+            conn = get_db()
+            existing = conn.execute("SELECT id FROM books WHERE title = ?", (filename,)).fetchone()
+            if not existing:
+                full_text = ""
+                with pdfplumber.open(filepath) as pdf:
+                    for page in pdf.pages:
+                        full_text += (page.extract_text() or "") + "\n"
+                conn.execute("INSERT INTO books (title, filepath, text) VALUES (?, ?, ?)", (filename, filepath, full_text))
+                conn.commit()
+            conn.close()
+            conn = get_db()
+            library_books = conn.execute("SELECT id, title, filepath FROM books ORDER BY date_added DESC").fetchall()
+            conn.close()
 
-        if not filepath:
-            results = ["Please upload a file."]
-        else:
+        elif selected_book_id:
+            conn = get_db()
+            book = conn.execute("SELECT filepath FROM books WHERE id = ?", (selected_book_id,)).fetchone()
+            conn.close()
+            if book:
+                filepath = book['filepath']
+
+        if filepath:
             with pdfplumber.open(filepath) as pdf:
-                
-                # MODE A: Theme Search (Whole Book)
-                if theme and theme in theme_keywords and not page_number:
-                    keywords = theme_keywords[theme]
+                # MODE A: Theme Search
+                if theme and theme in ai_knowledge and not page_number:
                     for i, page in enumerate(pdf.pages):
                         page_text = page.extract_text()
-                        if page_text and any(re.search(rf"\b{kw}\b", page_text, re.I) for kw in keywords):
-                            highlighted = highlight_content(page_text, keywords)
-                            results.append(f"<div class='page-address'>Page {i+1}</div>{highlighted}")
+                        if page_text:
+                            highlighted, assessment = highlight_content(page_text, theme)
+                            if "<mark" in highlighted:
+                                # NECESSARY CHANGE: Dictionary keys must match HTML r.page, r.content, r.assessment
+                                results.append({
+                                    "page": i + 1,
+                                    "content": highlighted,
+                                    "assessment": assessment
+                                })
                 
-                # MODE B: Specific Page Number Analysis (FIXED WITH HIGHLIGHTING)
-                elif page_number and page_number.isdigit():
-                    page_idx = int(page_number) - 1
-                    if 0 <= page_idx < len(pdf.pages):
-                        text = pdf.pages[page_idx].extract_text() or ""
-                        
-                        all_relevant_kws = []
-                        detected_labels = []
-                        
-                        # Identify every theme present on this specific page
-                        for t_name, kws in theme_keywords.items():
-                            theme_found = False
-                            for kw in kws:
-                                if re.search(rf"\b{kw}\b", text, re.I):
-                                    all_relevant_kws.append(kw)
-                                    theme_found = True
-                            
-                            if theme_found:
-                                score = sum(1 for kw in kws if re.search(rf"\b{kw}\b", text, re.I))
-                                detected_labels.append(f"<b>{t_name.upper()}</b> ({score})")
-                        
-                        # Apply highlighting using keywords from ALL detected themes
-                        if all_relevant_kws:
-                            display_text = highlight_content(text, list(set(all_relevant_kws)))
-                            summary = " | ".join(detected_labels)
-                        else:
-                            display_text = text.replace('\n', '<br>')
-                            summary = "No specific themes detected"
-                            
-                        results = [f"<div class='page-address'>Page {page_number} Analysis</div><p style='color: #666; font-size: 0.9rem;'>Themes: {summary}</p><hr>{display_text}"]
-                    else:
-                        results = ["Page number out of range."]
+                # MODE B: Specific Page Analysis
+                elif page_number.isdigit():
+                    idx = int(page_number) - 1
+                    if 0 <= idx < len(pdf.pages):
+                        page_text = pdf.pages[idx].extract_text() or ""
+                        display, assessment = highlight_content(page_text, theme) if theme else (page_text, "Direct view of page text.")
+                        results.append({
+                            "page": page_number,
+                            "content": display,
+                            "assessment": assessment
+                        })
 
-            if not results:
-                results = ["No themes found matching your search."]
-
-    return render_template("index.html", results=results)
+    return render_template("index.html", results=results, library_books=library_books)
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
-
+    app.run(debug=True)
 
 
 

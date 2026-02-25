@@ -18,24 +18,42 @@
 
         <main>
             <form method="post" enctype="multipart/form-data" class="analysis-form" id="analysisForm">
+                
                 <section>
-                    <h3>Upload Book (.txt or .pdf)</h3>
+                    <h3>Digital Library</h3>
+                    <select name="selected_book_id" class="file-input">
+                        <option value="">-- Or select a saved book --</option>
+                        {% for book in library_books %}
+                            <option value="{{ book.id }}">{{ book.title }}</option>
+                        {% endfor %}
+                    </select>
+                </section>
+
+                <section>
+                    <h3>Upload New Book (.pdf)</h3>
                     <div class="file-upload-wrapper" id="dropZone">
                         <p id="fileLabel">📄 Drag & Drop or Click to Upload</p>
                         <input type="file" name="file" class="file-input" id="fileInput">
                     </div>
-                    <p style="font-size: 0.8rem; color: #666; margin-top: 5px;">
-                        Note: If you already uploaded a file, you can just change the theme or page and click Analyze.
-                    </p>
                 </section>
 
                 <section>
                     <h3>Theme Search Mode</h3>
-                    <input type="text" name="theme" placeholder="e.g., courage">
+                    <select name="theme" class="file-input">
+                        <option value="">Select a Theme</option>
+                        <option value="education">Education</option>
+                        <option value="corruption">Corruption</option>
+                        <option value="leadership">Leadership</option>
+                        <option value="courage">Courage</option>
+                        <option value="betrayal">Betrayal</option>
+                        <option value="change">Change</option>
+                        <option value="poverty">Poverty</option>
+                        <option value="technology">Technology</option>
+                    </select>
                 </section>
 
                 <section>
-                    <h3>Page Theme Detection (PDF only)</h3>
+                    <h3>Page Theme Detection</h3>
                     <input type="number" name="page_number" placeholder="Enter page number">
                 </section>
 
@@ -44,14 +62,17 @@
 
             <div class="results-content">
                 {% if results %}
-                    <h2 style="margin-bottom: 20px; font-family: 'Playfair Display';">Analysis Results</h2>
                     {% for r in results %}
                         <div class="result-card">
-                            {{ r|safe }}
+                            <div class='page-address'>Page {{ r.page }}</div>
+                            <div class="text-display">{{ r.content|safe }}</div>
+                            
+                            <div class="assessment-box"> 
+                                <strong>🤖 AI Assessment (The Why):</strong>
+                                <i>{{ r.assessment }}</i>
+                            </div>
                         </div>
                     {% endfor %}
-                {% else %}
-                    <p class="empty-msg">Waiting for analysis...</p>
                 {% endif %}
             </div>
         </main>
@@ -68,14 +89,12 @@
         const fileInput = document.getElementById('fileInput');
         const fileLabel = document.getElementById('fileLabel');
 
-        // 1. Loading State
         form.onsubmit = function() {
             btn.value = "Analyzing Context...";
             btn.style.opacity = "0.7";
             btn.style.cursor = "not-allowed";
         };
 
-        // 2. Drag & Drop Visual Feedback
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
             dropZone.classList.add('dragover');
@@ -85,7 +104,6 @@
             dropZone.classList.remove('dragover');
         });
 
-        // 3. Update Text when file is selected
         fileInput.addEventListener('change', () => {
             if (fileInput.files.length > 0) {
                 fileLabel.innerText = "Selected: " + fileInput.files[0].name;
@@ -95,6 +113,7 @@
     </script>
 </body>
 </html>
+
   
 
    
