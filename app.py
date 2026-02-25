@@ -71,9 +71,6 @@ if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# ==============================
-# AI HIGHLIGHTER (Context-Aware)
-# ==============================
 def highlight_content(text, theme_name):
     knowledge = ai_knowledge.get(theme_name)
     if not knowledge:
@@ -81,7 +78,6 @@ def highlight_content(text, theme_name):
 
     anchors = knowledge["anchors"]
     vetoes = knowledge["vetoes"]
-
     text = text.replace('\n', ' ')
     sentences = re.split(r'(?<=[.!?]) +', text)
     highlighted_page = []
@@ -103,18 +99,14 @@ def highlight_content(text, theme_name):
                 found_keywords.append(kw.lower())
                 temp_sentence = re.sub(rf"\b({kw})\b", r"<b>\1</b>", temp_sentence, flags=re.IGNORECASE)
 
+    # Simplified highlight check for reliability
         if found_any and score > 0.4:
-            highlighted_page.append(f"<mark style='background-color: #fff3cd;'>{temp_sentence}</mark>")
+            highlighted_page.append(f"<mark>{temp_sentence}</mark>")
         else:
             highlighted_page.append(sentence)
 
-    # Generate the "Why" logic
     unique_kw = sorted(list(set(found_keywords)))
-    if unique_kw:
-        assessment = f"The AI identified the '{theme_name}' theme based on the presence of: {', '.join(unique_kw[:3])}."
-    else:
-        assessment = "No strong thematic evidence found on this page."
-
+    assessment = f"AI identified '{theme_name}' theme via: {', '.join(unique_kw[:3])}." if unique_kw else "No strong thematic evidence found."
     return " ".join(highlighted_page), assessment
 
 @app.route("/", methods=["GET", "POST"])
@@ -129,7 +121,6 @@ def index():
         theme = request.form.get("theme", "").lower().strip()
         page_number = request.form.get("page_number", "").strip()
         selected_book_id = request.form.get("selected_book_id")
-
         filepath = None
 
         if file and file.filename != '':
@@ -149,46 +140,34 @@ def index():
             conn = get_db()
             library_books = conn.execute("SELECT id, title, filepath FROM books ORDER BY date_added DESC").fetchall()
             conn.close()
-
         elif selected_book_id:
             conn = get_db()
             book = conn.execute("SELECT filepath FROM books WHERE id = ?", (selected_book_id,)).fetchone()
             conn.close()
-            if book:
-                filepath = book['filepath']
+            if book: filepath = book['filepath']
 
         if filepath:
             with pdfplumber.open(filepath) as pdf:
-                # MODE A: Theme Search
                 if theme and theme in ai_knowledge and not page_number:
                     for i, page in enumerate(pdf.pages):
                         page_text = page.extract_text()
                         if page_text:
                             highlighted, assessment = highlight_content(page_text, theme)
                             if "<mark" in highlighted:
-                                # NECESSARY CHANGE: Dictionary keys must match HTML r.page, r.content, r.assessment
-                                results.append({
-                                    "page": i + 1,
-                                    "content": highlighted,
-                                    "assessment": assessment
-                                })
-                
-                # MODE B: Specific Page Analysis
+                                results.append({"page": i + 1, "content": highlighted, "assessment": assessment})
                 elif page_number.isdigit():
                     idx = int(page_number) - 1
                     if 0 <= idx < len(pdf.pages):
                         page_text = pdf.pages[idx].extract_text() or ""
-                        display, assessment = highlight_content(page_text, theme) if theme else (page_text, "Direct view of page text.")
-                        results.append({
-                            "page": page_number,
-                            "content": display,
-                            "assessment": assessment
-                        })
+                        display, assessment = highlight_content(page_text, theme) if theme else (page_text, "Direct view.")
+                        results.append({"page": page_number, "content": display, "assessment": assessment})
 
     return render_template("index.html", results=results, library_books=library_books)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # RENDER FIX: Use the port provided by the environment, default to 10000
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
 
 
 
