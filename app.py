@@ -2,7 +2,6 @@ from flask import Flask, request, render_template
 import re
 import pdfplumber
 import os
-import sqlite3
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -45,30 +44,8 @@ ai_knowledge = {
     }
 }
 
-def get_db():
-    conn = sqlite3.connect("library.db")
-    conn.row_factory = sqlite3.Row
-    return conn
-
-def init_db():
-    conn = get_db()
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS books (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT,
-            filepath TEXT,
-            text TEXT,
-            date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    conn.commit()
-    conn.close()
-
-init_db()
-
-UPLOAD_FOLDER = 'uploads'
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+# Use /tmp for Render deployment as it's a writable directory
+UPLOAD_FOLDER = '/tmp'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # ==============================
@@ -109,99 +86,55 @@ def highlight_content(text, theme_name):
             highlighted_page.append(sentence)
 
     unique_kw = sorted(list(set(found_keywords)))
-    if unique_kw:
-        assessment = f"The AI identified the '{theme_name}' theme based on the presence of: {', '.join(unique_kw[:3])}."
-    else:
-        assessment = "No strong thematic evidence found on this page."
+    assessment = f"AI identified '{theme_name}' theme via: {', '.join(unique_kw[:3])}." if unique_kw else "No strong evidence."
 
     return " ".join(highlighted_page), assessment
 
 @app.route("/", methods=["GET", "POST"])
 def index():
     results = []
-    conn = get_db()
-    library_books = conn.execute("SELECT id, title, filepath FROM books ORDER BY date_added DESC").fetchall()
-    conn.close()
-
+    
     if request.method == "POST":
         file = request.files.get("file")
         theme = request.form.get("theme", "").lower().strip()
-        page_number = request.form.get("page_number", "").strip()
-        selected_book_id = request.form.get("selected_book_id")
-
-        filepath = None
+        page_num = request.form.get("page_number", "").strip()
 
         if file and file.filename != '':
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
-            conn = get_db()
-            existing = conn.execute("SELECT id FROM books WHERE title = ?", (filename,)).fetchone()
-            if not existing:
-                full_text = ""
+
+            try:
                 with pdfplumber.open(filepath) as pdf:
-                    for page in pdf.pages:
-                        full_text += (page.extract_text() or "") + "\n"
-                conn.execute("INSERT INTO books (title, filepath, text) VALUES (?, ?, ?)", (filename, filepath, full_text))
-                conn.commit()
-            conn.close()
-            conn = get_db()
-            library_books = conn.execute("SELECT id, title, filepath FROM books ORDER BY date_added DESC").fetchall()
-            conn.close()
+                    # Mode A: Theme Search
+                    if theme and not page_num:
+                        for i, page in enumerate(pdf.pages):
+                            page_text = page.extract_text()
+                            if page_text:
+                                highlighted, assessment = highlight_content(page_text, theme)
+                                if "<mark" in highlighted:
+                                    results.append({"page": i + 1, "content": highlighted, "assessment": assessment})
+                    
+                    # Mode B: Page Analysis
+                    elif page_num.isdigit():
+                        idx = int(page_num) - 1
+                        if 0 <= idx < len(pdf.pages):
+                            page_text = pdf.pages[idx].extract_text() or ""
+                            display, assessment = highlight_content(page_text, theme) if theme else (page_text, "Direct view.")
+                            results.append({"page": page_num, "content": display, "assessment": assessment})
+                
+                # Cleanup: Delete file after processing to prevent storage errors
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+                    
+            except Exception as e:
+                results.append({"page": "Error", "content": f"PDF Error: {str(e)}", "assessment": "Failed to read file."})
 
-        elif selected_book_id:
-            conn = get_db()
-            book = conn.execute("SELECT filepath FROM books WHERE id = ?", (selected_book_id,)).fetchone()
-            conn.close()
-            if book:
-                filepath = book['filepath']
-
-        if filepath:
-            # FIX: Convert Windows backslashes to Linux forward slashes for Render
-            filepath = filepath.replace('\\', '/')
-            
-            # FIX: Graceful handling if file was deleted from server storage
-            if not os.path.exists(filepath):
-                results.append({
-                    "page": "Error",
-                    "content": f"The file '{os.path.basename(filepath)}' is missing. Please re-upload it.",
-                    "assessment": "Server storage was cleared."
-                })
-            else:
-                try:
-                    with pdfplumber.open(filepath) as pdf:
-                        if theme and theme in ai_knowledge and not page_number:
-                            for i, page in enumerate(pdf.pages):
-                                page_text = page.extract_text()
-                                if page_text:
-                                    highlighted, assessment = highlight_content(page_text, theme)
-                                    if "<mark" in highlighted:
-                                        results.append({
-                                            "page": i + 1,
-                                            "content": highlighted,
-                                            "assessment": assessment
-                                        })
-                        
-                        elif page_number.isdigit():
-                            idx = int(page_number) - 1
-                            if 0 <= idx < len(pdf.pages):
-                                page_text = pdf.pages[idx].extract_text() or ""
-                                display, assessment = highlight_content(page_text, theme) if theme else (page_text, "Direct view.")
-                                results.append({
-                                    "page": page_number,
-                                    "content": display,
-                                    "assessment": assessment
-                                })
-                except Exception as e:
-                    results.append({"page": "Error", "content": f"Failed to read PDF: {str(e)}", "assessment": "File error."})
-
-    return render_template("index.html", results=results, library_books=library_books)
+    return render_template("index.html", results=results)
 
 if __name__ == "__main__":
-    # Get port from environment, default to 10000 for local testing
     port = int(os.environ.get("PORT", 10000))
-    # Bind to 0.0.0.0 to be visible to Render's network
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=port)
 
 
 

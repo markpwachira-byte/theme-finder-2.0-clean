@@ -20,27 +20,17 @@
             <form method="post" enctype="multipart/form-data" class="analysis-form" id="analysisForm">
                 
                 <section>
-                    <h3>Digital Library</h3>
-                    <select name="selected_book_id" class="file-input">
-                        <option value="">-- Or select a saved book --</option>
-                        {% for book in library_books %}
-                            <option value="{{ book.id }}">{{ book.title }}</option>
-                        {% endfor %}
-                    </select>
-                </section>
-
-                <section>
-                    <h3>Upload New Book (.pdf)</h3>
+                    <h3>Upload Book (.pdf)</h3>
                     <div class="file-upload-wrapper" id="dropZone">
                         <p id="fileLabel">📄 Drag & Drop or Click to Upload</p>
-                        <input type="file" name="file" class="file-input" id="fileInput">
+                        <input type="file" name="file" class="file-input" id="fileInput" required>
                     </div>
                 </section>
 
                 <section>
                     <h3>Theme Search Mode</h3>
                     <select name="theme" class="file-input">
-                        <option value="">Select a Theme</option>
+                        <option value="">Select a Theme (Optional)</option>
                         <option value="education">Education</option>
                         <option value="corruption">Corruption</option>
                         <option value="leadership">Leadership</option>
@@ -53,8 +43,8 @@
                 </section>
 
                 <section>
-                    <h3>Page Theme Detection</h3>
-                    <input type="number" name="page_number" placeholder="Enter page number">
+                    <h3>Direct Page View</h3>
+                    <input type="number" name="page_number" placeholder="Enter page number (Optional)">
                 </section>
 
                 <input type="submit" value="Analyze" class="submit-btn" id="submitBtn">
@@ -68,7 +58,7 @@
                             <div class="text-display">{{ r.content|safe }}</div>
                             
                             <div class="assessment-box"> 
-                                <strong>🤖 AI Assessment (The Why):</strong>
+                                <strong>🤖 AI Assessment:</strong>
                                 <i>{{ r.assessment }}</i>
                             </div>
                         </div>

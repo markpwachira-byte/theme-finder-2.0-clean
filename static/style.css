@@ -67,6 +67,12 @@ input, input[type="number"], .file-input, select {
     opacity: 0.9;
 }
 
+/* Feedback when the button is processing */
+.submit-btn:active {
+    transform: translateY(1px);
+    filter: brightness(0.9);
+}
+
 .results-content { 
     margin-top: 40px; 
     border-top: 1px solid var(--color-border); 
