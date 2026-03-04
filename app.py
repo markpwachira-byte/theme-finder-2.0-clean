@@ -44,13 +44,60 @@ ai_knowledge = {
     }
 }
 
-# Use /tmp for Render deployment as it's a writable directory
 UPLOAD_FOLDER = '/tmp'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# ==============================
-# AI HIGHLIGHTER (Context-Aware)
-# ==============================
+# ==========================================
+# INSTANCE 2 LOGIC: GLOBAL THEME SCANNER
+# ==========================================
+def scan_all_themes_on_page(text):
+    text = text.replace('\n', ' ')
+    sentences = re.split(r'(?<=[.!?]) +', text)
+    highlighted_page = []
+    assessment_details = {} # To store evidence for each theme
+
+    for sentence in sentences:
+        found_themes_in_sentence = []
+        
+        for theme, rules in ai_knowledge.items():
+            # Check Vetoes first
+            if any(re.search(rf"\b{v}\b", sentence, re.I) for v in rules["vetoes"]):
+                continue
+            
+            # Check Anchors
+            score = 0
+            found_kws = []
+            for kw, weight in rules["anchors"].items():
+                if re.search(rf"\b{kw}\b", sentence, re.I):
+                    score += weight
+                    found_kws.append(kw)
+            
+            if score > 0.4:
+                found_themes_in_sentence.append(theme.capitalize())
+                if theme not in assessment_details:
+                    assessment_details[theme] = set()
+                assessment_details[theme].update(found_kws)
+
+        if found_themes_in_sentence:
+            labels = "/".join(found_themes_in_sentence)
+            highlighted_page.append(f"<mark style='background-color: #d1ecf1; border-bottom: 2px solid #0c5460;'>{sentence} <b>[{labels}]</b></mark>")
+        else:
+            highlighted_page.append(sentence)
+
+    # Build the AI Assessment Message
+    if not assessment_details:
+        assessment_msg = "AI Assessment: No significant themes detected on this page."
+    else:
+        parts = []
+        for theme, evidence in assessment_details.items():
+            parts.append(f"Theme Identified: {theme.capitalize()} (Evidence: {', '.join(list(evidence)[:3])})")
+        assessment_msg = " | ".join(parts)
+
+    return " ".join(highlighted_page), assessment_msg
+
+# ==========================================
+# INSTANCE 1 LOGIC: TARGETED THEME HIGHLIGHTER
+# ==========================================
 def highlight_content(text, theme_name):
     knowledge = ai_knowledge.get(theme_name)
     if not knowledge:
@@ -72,7 +119,7 @@ def highlight_content(text, theme_name):
         score = 0
         temp_sentence = sentence
         found_any = False
-        
+
         for kw, weight in anchors.items():
             if re.search(rf"\b{kw}\b", sentence, flags=re.IGNORECASE):
                 score += weight
@@ -93,7 +140,7 @@ def highlight_content(text, theme_name):
 @app.route("/", methods=["GET", "POST"])
 def index():
     results = []
-    
+
     if request.method == "POST":
         file = request.files.get("file")
         theme = request.form.get("theme", "").lower().strip()
@@ -106,7 +153,7 @@ def index():
 
             try:
                 with pdfplumber.open(filepath) as pdf:
-                    # Mode A: Theme Search
+                    # INSTANCE 1: Theme Search (Whole book for specific theme)
                     if theme and not page_num:
                         for i, page in enumerate(pdf.pages):
                             page_text = page.extract_text()
@@ -114,19 +161,23 @@ def index():
                                 highlighted, assessment = highlight_content(page_text, theme)
                                 if "<mark" in highlighted:
                                     results.append({"page": i + 1, "content": highlighted, "assessment": assessment})
-                    
-                    # Mode B: Page Analysis
+
+                    # INSTANCE 2: Global Page Analysis (Specific page, all themes)
                     elif page_num.isdigit():
                         idx = int(page_num) - 1
                         if 0 <= idx < len(pdf.pages):
                             page_text = pdf.pages[idx].extract_text() or ""
-                            display, assessment = highlight_content(page_text, theme) if theme else (page_text, "Direct view.")
+                            
+                            if theme: # Targeted Page Search (Existing feature)
+                                display, assessment = highlight_content(page_text, theme)
+                            else: # NEW UPGRADE: Global Scan (No theme chosen, scan all)
+                                display, assessment = scan_all_themes_on_page(page_text)
+                            
                             results.append({"page": page_num, "content": display, "assessment": assessment})
-                
-                # Cleanup: Delete file after processing to prevent storage errors
+
                 if os.path.exists(filepath):
                     os.remove(filepath)
-                    
+
             except Exception as e:
                 results.append({"page": "Error", "content": f"PDF Error: {str(e)}", "assessment": "Failed to read file."})
 
