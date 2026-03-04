@@ -8,6 +8,22 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Extra styling for the new AI Assessment Evidence */
+        .assessment-box {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #f0f7f9;
+            border-left: 4px solid #0c5460;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            color: #333;
+        }
+        .text-display mark {
+            padding: 2px 0;
+            border-radius: 2px;
+        }
+    </style>
 </head>
 <body>
     <div id="root">
@@ -18,9 +34,9 @@
 
         <main>
             <form method="post" enctype="multipart/form-data" class="analysis-form" id="analysisForm">
-                
+
                 <section>
-                    <h3>Upload Book (.pdf)</h3>
+                    <h3>1. Upload Book (.pdf)</h3>
                     <div class="file-upload-wrapper" id="dropZone">
                         <p id="fileLabel">📄 Drag & Drop or Click to Upload</p>
                         <input type="file" name="file" class="file-input" id="fileInput" required>
@@ -28,9 +44,13 @@
                 </section>
 
                 <section>
-                    <h3>Theme Search Mode</h3>
+                    <h3>2. Analysis Mode</h3>
+                    <p style="font-size: 0.8rem; color: #666; margin-bottom: 10px;">
+                        <b>Instance 1:</b> Select a theme to search the whole book.<br>
+                        <b>Instance 2:</b> Leave theme blank & enter page # for Global AI Scan.
+                    </p>
                     <select name="theme" class="file-input">
-                        <option value="">Select a Theme (Optional)</option>
+                        <option value="">Scan for All Themes (Global Mode)</option>
                         <option value="education">Education</option>
                         <option value="corruption">Corruption</option>
                         <option value="leadership">Leadership</option>
@@ -43,8 +63,8 @@
                 </section>
 
                 <section>
-                    <h3>Direct Page View</h3>
-                    <input type="number" name="page_number" placeholder="Enter page number (Optional)">
+                    <h3>3. Page Selection</h3>
+                    <input type="number" name="page_number" placeholder="Enter page number (e.g. 12)">
                 </section>
 
                 <input type="submit" value="Analyze" class="submit-btn" id="submitBtn">
@@ -56,10 +76,10 @@
                         <div class="result-card">
                             <div class='page-address'>Page {{ r.page }}</div>
                             <div class="text-display">{{ r.content|safe }}</div>
-                            
+
                             <div class="assessment-box"> 
-                                <strong>🤖 AI Assessment:</strong>
-                                <i>{{ r.assessment }}</i>
+                                <strong>🧠 AI THEMATIC ASSESSMENT:</strong><br>
+                                <span style="display: block; margin-top: 5px;">{{ r.assessment }}</span>
                             </div>
                         </div>
                     {% endfor %}
@@ -68,7 +88,7 @@
         </main>
 
         <footer>
-            <p>&copy; 2024 Lexicon. All rights reserved.</p>
+            <p>&copy; 2026 Lexicon | KSEF Engineering Project</p>
         </footer>
     </div>
 
