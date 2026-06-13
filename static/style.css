@@ -2,7 +2,8 @@
   --color-background: hsl(40, 20%, 97%);
   --color-foreground: hsl(210, 10%, 20%);
   --color-card: hsl(40, 20%, 99%);
-  --color-primary: hsl(215, 30%, 30%);
+  --color-primary: hsl(215, 30%, 30%); /* Academic Blue */
+  --color-accent-scan: hsl(190, 40%, 40%); /* Teal for Global Scan */
   --color-border: hsl(35, 15%, 85%);
   --color-error: hsl(0, 65%, 45%);
   --color-error-bg: hsl(0, 60%, 97%);
@@ -101,33 +102,12 @@ header h1 {
   transition: color 0.3s ease;
 }
 
-.subtitle {
-  color: var(--color-foreground);
-  opacity: 0.7;
-  margin-bottom: 20px;
-  font-size: 0.85rem;
-}
+.subtitle { color: var(--color-foreground); opacity: 0.7; margin-bottom: 40px; }
 
-.analysis-form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+section { margin-bottom: 24px; }
+h3 { font-family: var(--font-serif); color: var(--color-primary); margin-bottom: 10px; }
 
-section { margin-bottom: 18px; }
-
-h3 {
-  font-family: var(--font-serif);
-  color: var(--color-primary);
-  margin-bottom: 8px;
-  font-size: 1rem;
-  transition: color 0.3s ease;
-}
-
-input,
-input[type="number"],
-.file-input,
-select {
+input, input[type="number"], .file-input, select {
   width: 100%;
   padding: 10px;
   border: 1px solid var(--color-border);
@@ -136,13 +116,80 @@ select {
   font-family: var(--font-sans);
   font-size: 0.9rem;
   color: var(--color-foreground);
-  box-sizing: border-box;
-  transition: background-color 0.3s, border-color 0.3s, color 0.3s;
 }
 
-/* ==============================
-   FILE DROP ZONE
-   ============================== */
+.submit-btn {
+  background-color: var(--color-primary);
+  color: white;
+  padding: 12px 30px;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.submit-btn:hover {
+    opacity: 0.9;
+}
+
+.submit-btn:active {
+    transform: translateY(1px);
+    filter: brightness(0.9);
+}
+
+.results-content { 
+    margin-top: 40px; 
+    border-top: 1px solid var(--color-border); 
+    padding-top: 20px; 
+}
+
+.result-card { 
+    background: white; 
+    padding: 30px; 
+    margin-bottom: 30px; 
+    border-left: 5px solid var(--color-primary);
+    border-radius: 0 8px 8px 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    line-height: 1.8; 
+}
+
+.text-display {
+    color: var(--color-foreground);
+    font-size: 1.05rem;
+}
+
+/* Instance 1: Targeted Highlight Style (Yellow) */
+mark {
+    background-color: hsl(45, 100%, 85%);
+    color: inherit;
+    padding: 2px 4px;
+    border-radius: 2px;
+}
+
+/* Instance 2: Global Scan Highlight Style (Teal/Blue) */
+/* This matches the background-color used in scan_all_themes_on_page */
+mark[style*="background-color: #d1ecf1"] {
+    background-color: hsl(190, 50%, 90%) !important;
+    border-bottom: 2px solid var(--color-accent-scan);
+    color: hsl(210, 20%, 15%);
+}
+
+.page-address {
+    display: inline-block;
+    background-color: var(--color-primary);
+    color: white;
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+b { background: hsl(35, 40%, 94%); color: var(--color-primary); padding: 0 3px; }
+
 .file-upload-wrapper {
   position: relative;
   border: 2px dashed var(--color-border);
@@ -156,248 +203,43 @@ select {
 }
 
 .file-upload-wrapper input[type="file"] {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  opacity: 0;
-  cursor: pointer;
-  pointer-events: none;
-}
-
-/* FIX: Stops long book filenames from breaking boundaries */
-.file-upload-wrapper p {
-  pointer-events: none;
-  margin: 0;
-  word-break: break-all;
-  white-space: normal;
-  overflow-wrap: break-word;
-}
-
-.file-upload-wrapper.dragover {
-  border-color: var(--color-primary);
-  background-color: hsl(215, 30%, 96%);
-}
-
-.file-upload-wrapper.selected {
-  border-color: var(--color-success);
-  border-style: solid;
-  background-color: hsl(140, 40%, 97%);
-}
-
-.file-upload-wrapper.selected #fileLabel {
-  color: var(--color-success);
-  font-weight: 500;
-}
-
-/* ==============================
-   SUBMIT BUTTON
-   ============================== */
-.submit-btn {
-  margin-top: 10px;
-  background-color: var(--color-primary);
-  color: white;                  /* Clean high-contrast white text for standard light theme mode */
-  padding: 14px;
-  border: none;
-  border-radius: 4px;
-  font-weight: 600;
-  cursor: pointer;
-  width: 100%;
-  transition: all 0.2s;
-}
-
-.submit-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
-.submit-btn:active:not(:disabled) { transform: translateY(1px); }
-
-.submit-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* ==============================
-   RESULTS CONTAINER FRAMEWORK (FULL-SPAN EDGE WORKSPACE)
-   ============================== */
-.results-container {
-  flex: 1;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--color-background);
-  overflow: hidden;
-  transition: background-color 0.3s ease;
-}
-
-/* ==========================================
-   FIXED CONTROL CENTER HEADER DECK (SLIMMED DOWN)
-   ========================================== */
-.results-header {
-  width: 100%;
-  padding: 8px 24px;             /* Slimmer vertical breathing profile */
-  box-sizing: border-box;
-  display: flex;
-  justify-content: center;
-  background-color: var(--color-background);
-  border-bottom: 1px solid var(--color-border);
-  z-index: 5;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
-}
-
-.header-controls {
-  width: 100%;
-  max-width: 100%;               /* Let it stretch natively to match the parent track */
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-/* ==========================================
-   CUSTOM INTERACTIVE SLIDING SWITCH ANATOMY
-   ========================================== */
-.theme-toggle-track {
-  position: relative;
-  width: 64px;
-  height: 32px;
-  background-color: var(--color-toggle-track);
-  border-radius: 20px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 6px;
-  box-sizing: border-box;
-  box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
-  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.toggle-icon {
-  font-size: 1rem;
-  user-select: none;
-  pointer-events: none;
-}
-
-/* Sliding Floating Circle Thumb */
-.theme-toggle-thumb {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 26px;
-  height: 26px;
-  background-color: #ffffff;
-  border-radius: 50%;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 2;
-}
-
-body:not([data-theme="dark"]) .theme-toggle-thumb {
-  transform: translateX(0);
-}
-
-body[data-theme="dark"] .theme-toggle-thumb {
-  transform: translateX(32px);
-}
-
-/* ==========================================
-   SCROLLABLE RESULT VIEWPORT PANELS (WIDE & SNUG)
-   ========================================== */
-.results-content { 
-  flex: 1;
-  width: 100%;
-  max-width: 100%;               /* Stripped layout bounds so cards fill screen canvas snugly */
-  margin: 0; 
-  padding: 24px 24px 60px 24px;  /* Clean perimeter padding gaps against monitor frame */
-  box-sizing: border-box;
-  overflow-y: auto;
-}
-
-/* Standard result card */
-.result-card {
-  background: var(--color-card);
-  padding: 30px;                 /* Luxurious readability interior space */
-  margin-bottom: 25px;
-  border-left: 5px solid var(--color-primary);
-  border-radius: 0 8px 8px 0;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-  width: 100%;                   /* Snugly fills out the right viewport canvas perfectly */
-  box-sizing: border-box;
-}
-
-/* Error card configuration */
-.error-card {
-  background: var(--color-error-bg);
-  border-left: 5px solid var(--color-error);
-}
-
-.error-card .page-address {
-  background-color: var(--color-error);
-  color: white;
-}
-
-.text-display {
-  color: var(--color-foreground);
-  font-size: 1.05rem;
-  line-height: 1.7;
-  font-family: var(--font-serif);
-}
-
-.page-address {
-  background-color: var(--color-primary);
-  color: #1e222b;                /* High-contrast text layout balance against bright light blue token */
-  padding: 3px 12px;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  margin-bottom: 14px;
-  display: inline-block;
-  text-transform: uppercase;
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-body:not([data-theme="dark"]) .page-address {
-  color: white;                  /* Restores white text styling over dark blue tag in light mode */
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    cursor: pointer;
 }
 
 .assessment-box {
-  margin-top: 18px;
-  padding: 14px;
-  background-color: hsl(210, 20%, 96%);
-  border-left: 4px solid var(--color-primary);
-  border-radius: 4px;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
+    margin-top: 20px;
+    padding: 15px;
+    background-color: hsl(210, 20%, 96%);
+    border-left: 4px solid var(--color-primary);
+    border-radius: 4px;
 }
 
-body[data-theme="dark"] .assessment-box strong {
-  color: var(--color-primary);   /* Illuminates the assessment label in light blue */
+.assessment-box strong {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    color: var(--color-primary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
-body[data-theme="dark"] .assessment-box {
-  background-color: #21252b;     /* Keeps background solid charcoal inside dark mode card systems */
+/* For evidence text and multi-theme lists */
+.assessment-box span {
+    color: hsl(210, 10%, 30%);
+    font-size: 0.95rem;
+    line-height: 1.6;
 }
 
-.empty-state {
-  text-align: center;
-  color: var(--color-foreground);
-  opacity: 0.5;
-  margin-top: 140px;
+@media (max-width: 600px) {
+    body { padding: 15px; }
+    #root { padding: 20px; }
+    header h1 { font-size: 2.2rem; }
+    .submit-btn { width: 100%; }
 }
 
-footer {
-  margin-top: auto;
-  padding-top: 20px;
-  font-size: 0.7rem;
-  opacity: 0.4;
-}
-
-/* ==============================
-   RESPONSIVE
-   ============================== */
-@media (max-width: 850px) {
-  .dashboard-wrapper { flex-direction: column; overflow-y: auto; }
-  .sidebar { flex: 0 0 auto; width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--color-border); }
-  .results-container { height: auto; overflow: visible; }
-  .results-header { padding: 10px 20px; }
-  .results-content { max-width: 100%; padding: 20px; overflow-y: visible; }
-}

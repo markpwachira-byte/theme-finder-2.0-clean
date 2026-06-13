@@ -8,6 +8,22 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Extra styling for the new AI Assessment Evidence */
+        .assessment-box {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #f0f7f9;
+            border-left: 4px solid #0c5460;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            color: #333;
+        }
+        .text-display mark {
+            padding: 2px 0;
+            border-radius: 2px;
+        }
+    </style>
 </head>
 <body>
     <div id="root" class="dashboard-wrapper">
@@ -17,9 +33,11 @@
                 <p class="subtitle">Literary Theme Analyzer</p>
             </header>
 
-            <form class="analysis-form" id="analysisForm">
+        <main>
+            <form method="post" enctype="multipart/form-data" class="analysis-form" id="analysisForm">
+
                 <section>
-                    <h3>Upload Book (.pdf)</h3>
+                    <h3>1. Upload Book (.pdf)</h3>
                     <div class="file-upload-wrapper" id="dropZone">
                         <p id="fileLabel">📄 Drag & Drop or Click</p>
                         <input type="file" name="file" class="file-input" id="fileInput" accept=".pdf">
@@ -30,9 +48,9 @@
                 </section>
 
                 <section>
-                    <h3>Theme Search Mode</h3>
-                    <select name="theme" class="file-input" id="themeInput">
-                        <option value="">Select a Theme (Optional)</option>
+                    <h3>2. Analysis Mode</h3>
+ <select name="theme" class="file-input">
+                        <option value="">Scan for All Themes (Global Mode)</option>
                         <option value="education">Education</option>
                         <option value="corruption">Corruption</option>
                         <option value="leadership">Leadership</option>
@@ -45,35 +63,33 @@
                 </section>
 
                 <section>
-                    <h3>Direct Page View</h3>
-                    <input type="number" name="page_number" id="pageNumberInput" placeholder="Enter page number" min="1">
+                    <h3>3. Page Selection</h3>
+                    <input type="number" name="page_number" placeholder="Enter page number (e.g. 12)">
                 </section>
 
                 <input type="submit" value="Analyze" class="submit-btn" id="submitBtn">
             </form>
 
-            <footer>
-                <p>&copy; 2026 Lexicon. All rights reserved.</p>
-            </footer>
-        </aside>
+            <div class="results-content">
+                {% if results %}
+                    {% for r in results %}
+                        <div class="result-card">
+                            <div class='page-address'>Page {{ r.page }}</div>
+                            <div class="text-display">{{ r.content|safe }}</div>
 
-        <main class="results-container">
-            <div class="results-header">
-                <div class="header-controls">
-                    <div class="theme-toggle-track" id="themeToggleBtn" title="Switch Reading Theme">
-                        <span class="toggle-icon icon-moon">🌙</span>
-                        <span class="toggle-icon icon-sun">☀️</span>
-                        <div class="theme-toggle-thumb"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="results-content" id="resultsContent">
-                <div class="empty-state">
-                    <p>Upload a document and click "Analyze" to see thematic results here.</p>
-                </div>
+                            <div class="assessment-box"> 
+                                <strong>🧠 AI THEMATIC ASSESSMENT:</strong><br>
+                                <span style="display: block; margin-top: 5px;">{{ r.assessment }}</span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
             </div>
         </main>
+
+        <footer>
+            <p>&copy; 2026 Lexicon. All rights are reserved.</p>
+        </footer>
     </div>
 
     <script>
