@@ -10,26 +10,28 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div id="root">
-        <header>
-            <h1>Lexicon</h1>
-            <p class="subtitle">Literary Theme Analyzer</p>
-        </header>
+    <div id="root" class="dashboard-wrapper">
+        <aside class="sidebar">
+            <header>
+                <h1>Lexicon</h1>
+                <p class="subtitle">Literary Theme Analyzer</p>
+            </header>
 
-        <main>
-            <form method="post" enctype="multipart/form-data" class="analysis-form" id="analysisForm">
-                
+            <form class="analysis-form" id="analysisForm">
                 <section>
                     <h3>Upload Book (.pdf)</h3>
                     <div class="file-upload-wrapper" id="dropZone">
-                        <p id="fileLabel">📄 Drag & Drop or Click to Upload</p>
-                        <input type="file" name="file" class="file-input" id="fileInput" required>
+                        <p id="fileLabel">📄 Drag & Drop or Click</p>
+                        <input type="file" name="file" class="file-input" id="fileInput" accept=".pdf">
                     </div>
+                    <p id="fileTypeWarning" style="display:none; color:#c0392b; font-size:0.8rem; margin-top:6px;">
+                        ⚠️ Only PDF files are supported.
+                    </p>
                 </section>
 
                 <section>
                     <h3>Theme Search Mode</h3>
-                    <select name="theme" class="file-input">
+                    <select name="theme" class="file-input" id="themeInput">
                         <option value="">Select a Theme (Optional)</option>
                         <option value="education">Education</option>
                         <option value="corruption">Corruption</option>
@@ -44,66 +46,202 @@
 
                 <section>
                     <h3>Direct Page View</h3>
-                    <input type="number" name="page_number" placeholder="Enter page number (Optional)">
+                    <input type="number" name="page_number" id="pageNumberInput" placeholder="Enter page number" min="1">
                 </section>
 
                 <input type="submit" value="Analyze" class="submit-btn" id="submitBtn">
             </form>
 
-            <div class="results-content">
-                {% if results %}
-                    {% for r in results %}
-                        <div class="result-card">
-                            <div class='page-address'>Page {{ r.page }}</div>
-                            <div class="text-display">{{ r.content|safe }}</div>
-                            
-                            <div class="assessment-box"> 
-                                <strong>🤖 AI Assessment:</strong>
-                                <i>{{ r.assessment }}</i>
-                            </div>
-                        </div>
-                    {% endfor %}
-                {% endif %}
+            <footer>
+                <p>&copy; 2026 Lexicon. All rights reserved.</p>
+            </footer>
+        </aside>
+
+        <main class="results-container">
+            <div class="results-header">
+                <div class="header-controls">
+                    <div class="theme-toggle-track" id="themeToggleBtn" title="Switch Reading Theme">
+                        <span class="toggle-icon icon-moon">🌙</span>
+                        <span class="toggle-icon icon-sun">☀️</span>
+                        <div class="theme-toggle-thumb"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="results-content" id="resultsContent">
+                <div class="empty-state">
+                    <p>Upload a document and click "Analyze" to see thematic results here.</p>
+                </div>
             </div>
         </main>
-
-        <footer>
-            <p>&copy; 2024 Lexicon. All rights reserved.</p>
-        </footer>
     </div>
 
     <script>
-        const form = document.getElementById('analysisForm');
-        const btn = document.getElementById('submitBtn');
-        const dropZone = document.getElementById('dropZone');
-        const fileInput = document.getElementById('fileInput');
-        const fileLabel = document.getElementById('fileLabel');
+    const form = document.getElementById('analysisForm');
+    const btn = document.getElementById('submitBtn');
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileLabel = document.getElementById('fileLabel');
+    const fileTypeWarning = document.getElementById('fileTypeWarning');
+    const resultsContent = document.getElementById('resultsContent');
 
-        form.onsubmit = function() {
-            btn.value = "Analyzing Context...";
-            btn.style.opacity = "0.7";
-            btn.style.cursor = "not-allowed";
-        };
+    let selectedFile = null;
 
-        dropZone.addEventListener('dragover', (e) => {
+    function handleFile(file) {
+        if (!file) return;
+        if (!file.name.toLowerCase().endsWith('.pdf')) {
+            fileTypeWarning.style.display = 'block';
+            fileLabel.innerText = "📄 Drag & Drop or Click";
+            dropZone.classList.remove('selected');
+            fileInput.value = '';
+            selectedFile = null;
+        } else {
+            fileTypeWarning.style.display = 'none';
+            fileLabel.innerText = "✅ " + file.name;
+            dropZone.classList.add('selected');
+            selectedFile = file;
+        }
+    }
+
+    dropZone.addEventListener('click', (e) => {
+        if (e.target !== fileInput) {
+            fileInput.click();
+        }
+    });
+
+    fileInput.addEventListener('change', () => {
+        handleFile(fileInput.files[0]);
+    });
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
             e.preventDefault();
+            e.stopPropagation();
             dropZone.classList.add('dragover');
-        });
+        }, false);
+    });
 
-        dropZone.addEventListener('dragleave', () => {
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             dropZone.classList.remove('dragover');
-        });
+        }, false);
+    });
 
-        fileInput.addEventListener('change', () => {
-            if (fileInput.files.length > 0) {
-                fileLabel.innerText = "Selected: " + fileInput.files[0].name;
-                dropZone.classList.add('selected');
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('dragover');
+
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            handleFile(file);
+        }
+    });
+
+    form.onsubmit = function (e) {
+        e.preventDefault();
+
+        if (!selectedFile) {
+            alert("Please upload/drop a PDF file first.");
+            return;
+        }
+
+        btn.value = "Analyzing Context...";
+        btn.style.opacity = "0.7";
+        btn.style.cursor = "not-allowed";
+        btn.disabled = true;
+
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('theme', document.getElementById('themeInput').value);
+        formData.append('page_number', document.getElementById('pageNumberInput').value);
+
+        fetch('/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Reset Button State
+            btn.value = "Analyze";
+            btn.style.opacity = "1";
+            btn.style.cursor = "pointer";
+            btn.disabled = false;
+
+            resultsContent.innerHTML = '';
+
+            if (data.error) {
+                resultsContent.innerHTML = `
+                    <div class="result-card error-card">
+                        <div class="page-address">⚠️ Error</div>
+                        <div class="text-display">${data.error}</div>
+                    </div>
+                `;
+                return;
             }
+
+            if (data.results && data.results.length > 0) {
+                data.results.forEach(r => {
+                    const card = document.createElement('div');
+                    card.className = 'result-card';
+                    card.innerHTML = `
+                        <div class="page-address">Page ${r.page}</div>
+                        <div class="text-display">${r.content}</div>
+                        <div class="assessment-box">
+                            <strong>🤖 AI Assessment:</strong>
+                            <i>${r.assessment}</i>
+                        </div>
+                    `;
+                    resultsContent.appendChild(card);
+                });
+            } else {
+                resultsContent.innerHTML = `
+                    <div class="empty-state">
+                        <p>No thematic matches found for the selected options.</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(err => {
+            btn.value = "Analyze";
+            btn.style.opacity = "1";
+            btn.style.cursor = "pointer";
+            btn.disabled = false;
+            
+            resultsContent.innerHTML = `
+                <div class="result-card error-card">
+                    <div class="page-address">⚠️ Error</div>
+                    <div class="text-display">Network error or connection failed.</div>
+                </div>
+            `;
+            console.error(err);
         });
-    </script>
+    };
+
+    // ==========================================
+    // SYSTEM ORCHESTRATION: STATE THEME TOGGLE
+    // ==========================================
+    const toggleBtn = document.getElementById('themeToggleBtn');
+    
+    // Checks browser memory on load to see if user preferred dark theme before
+    if (localStorage.getItem('lexicon-theme') === 'dark') {
+        document.body.setAttribute('data-theme', 'dark');
+    }
+
+    toggleBtn.addEventListener('click', () => {
+        if (document.body.getAttribute('data-theme') === 'dark') {
+            document.body.removeAttribute('data-theme');
+            localStorage.setItem('lexicon-theme', 'light');
+        } else {
+            document.body.setAttribute('data-theme', 'dark');
+            localStorage.setItem('lexicon-theme', 'dark');
+        }
+    });
+</script>
 </body>
 </html>
-
   
 
    

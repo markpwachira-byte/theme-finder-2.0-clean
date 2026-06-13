@@ -1,180 +1,403 @@
 :root {
-  --color-background: hsl(40, 20%, 97%); /* Warm paper white */
+  --color-background: hsl(40, 20%, 97%);
   --color-foreground: hsl(210, 10%, 20%);
   --color-card: hsl(40, 20%, 99%);
-  --color-primary: hsl(215, 30%, 30%); /* Academic Blue */
+  --color-primary: hsl(215, 30%, 30%);
   --color-border: hsl(35, 15%, 85%);
+  --color-error: hsl(0, 65%, 45%);
+  --color-error-bg: hsl(0, 60%, 97%);
+  --color-success: hsl(140, 50%, 40%);
+  --color-toggle-track: hsl(35, 15%, 88%);
   --font-serif: "Playfair Display", serif;
   --font-sans: "Inter", sans-serif;
 }
 
+/* ==========================================
+   DARK THEME PALETTE INVERSION MATRIX
+   ========================================== */
+body[data-theme="dark"] {
+  --color-background: #1e222b;     /* Deep rich charcoal canvas */
+  --color-card: #282c34;           /* Slightly lighter charcoal for cards */
+  --color-foreground: #e2e4e9;     /* Crisp white text for optimal dark reading contrast */
+  --color-primary: #5dade2;        /* Vibrant, glowing light blue accent token */
+  --color-border: #3e4451;         /* Low-contrast dark theme grid borders */
+  --color-toggle-track: #4b5263;   /* Slate blue track color for dark mode */
+  --color-error-bg: #2c1a1a;
+}
+
+body[data-theme="dark"] .sidebar {
+  background: #181a1f;             /* Distinct dark obsidian shade for sidebar separation */
+}
+
+/* FIX: Dynamically maps the submit button to the electric blue token in dark mode */
+body[data-theme="dark"] .submit-btn {
+  background-color: var(--color-primary) !important;
+  color: #1e222b !important;        /* Dark bold text contrast against vibrant blue highlight */
+}
+
+body[data-theme="dark"] input,
+body[data-theme="dark"] input[type="number"],
+body[data-theme="dark"] .file-input,
+body[data-theme="dark"] select,
+body[data-theme="dark"] .file-upload-wrapper {
+  background: #21252b;
+  color: #abb2bf;
+}
+
+body[data-theme="dark"] .assessment-box {
+  background-color: #21252b;
+}
+
+body[data-theme="dark"] mark {
+  background-color: hsla(200, 80%, 40%, 0.4) !important;
+  color: #ffffff;
+  border-bottom: 2px solid #5dade2;
+}
+
+/* ==========================================
+   GLOBAL LAYOUT STYLES
+   ========================================== */
 body {
   font-family: var(--font-sans);
   background-color: var(--color-background);
   color: var(--color-foreground);
   margin: 0;
-  padding: 40px;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
   background-image: radial-gradient(at 0% 0%, hsla(35, 30%, 90%, 0.3) 0px, transparent 50%);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-#root {
-  max-width: 900px;
-  margin: 0 auto;
+.dashboard-wrapper {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* ==============================
+   SIDEBAR
+   ============================== */
+.sidebar {
+  flex: 0 0 350px;
   background: var(--color-card);
-  padding: 40px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  border-right: 1px solid var(--color-border);
+  padding: 25px 30px;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow-y: auto;
+  box-shadow: 4px 0 12px rgba(0,0,0,0.02);
+  z-index: 10;
+  box-sizing: border-box;
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
-header h1 { 
-    font-family: var(--font-serif); 
-    color: var(--color-primary); 
-    font-size: 3rem;
-    margin: 0;
+header h1 {
+  font-family: var(--font-serif);
+  color: var(--color-primary);
+  font-size: 2.2rem;
+  margin: 0;
+  transition: color 0.3s ease;
 }
 
-.subtitle { color: var(--color-foreground); opacity: 0.7; margin-bottom: 40px; }
+.subtitle {
+  color: var(--color-foreground);
+  opacity: 0.7;
+  margin-bottom: 20px;
+  font-size: 0.85rem;
+}
 
-section { margin-bottom: 24px; }
-h3 { font-family: var(--font-serif); color: var(--color-primary); margin-bottom: 10px; }
+.analysis-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 
-/* ✅ UPDATED: Added 'select' and fixed typography for form elements */
-input, input[type="number"], .file-input, select {
+section { margin-bottom: 18px; }
+
+h3 {
+  font-family: var(--font-serif);
+  color: var(--color-primary);
+  margin-bottom: 8px;
+  font-size: 1rem;
+  transition: color 0.3s ease;
+}
+
+input,
+input[type="number"],
+.file-input,
+select {
   width: 100%;
-  padding: 12px;
+  padding: 10px;
   border: 1px solid var(--color-border);
   border-radius: 4px;
   background: white;
-  box-sizing: border-box; 
   font-family: var(--font-sans);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   color: var(--color-foreground);
+  box-sizing: border-box;
+  transition: background-color 0.3s, border-color 0.3s, color 0.3s;
 }
 
+/* ==============================
+   FILE DROP ZONE
+   ============================== */
+.file-upload-wrapper {
+  position: relative;
+  border: 2px dashed var(--color-border);
+  border-radius: 8px;
+  padding: 15px;
+  text-align: center;
+  background-color: white;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s;
+  box-sizing: border-box;
+}
+
+.file-upload-wrapper input[type="file"] {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  cursor: pointer;
+  pointer-events: none;
+}
+
+/* FIX: Stops long book filenames from breaking boundaries */
+.file-upload-wrapper p {
+  pointer-events: none;
+  margin: 0;
+  word-break: break-all;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+.file-upload-wrapper.dragover {
+  border-color: var(--color-primary);
+  background-color: hsl(215, 30%, 96%);
+}
+
+.file-upload-wrapper.selected {
+  border-color: var(--color-success);
+  border-style: solid;
+  background-color: hsl(140, 40%, 97%);
+}
+
+.file-upload-wrapper.selected #fileLabel {
+  color: var(--color-success);
+  font-weight: 500;
+}
+
+/* ==============================
+   SUBMIT BUTTON
+   ============================== */
 .submit-btn {
+  margin-top: 10px;
   background-color: var(--color-primary);
-  color: white;
-  padding: 12px 30px;
+  color: white;                  /* Clean high-contrast white text for standard light theme mode */
+  padding: 14px;
   border: none;
   border-radius: 4px;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s;
+  width: 100%;
+  transition: all 0.2s;
 }
 
-.submit-btn:hover {
-    opacity: 0.9;
+.submit-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+.submit-btn:active:not(:disabled) { transform: translateY(1px); }
+
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
-/* Feedback when the button is processing */
-.submit-btn:active {
-    transform: translateY(1px);
-    filter: brightness(0.9);
+/* ==============================
+   RESULTS CONTAINER FRAMEWORK (FULL-SPAN EDGE WORKSPACE)
+   ============================== */
+.results-container {
+  flex: 1;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-background);
+  overflow: hidden;
+  transition: background-color 0.3s ease;
 }
 
+/* ==========================================
+   FIXED CONTROL CENTER HEADER DECK (SLIMMED DOWN)
+   ========================================== */
+.results-header {
+  width: 100%;
+  padding: 8px 24px;             /* Slimmer vertical breathing profile */
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  background-color: var(--color-background);
+  border-bottom: 1px solid var(--color-border);
+  z-index: 5;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.header-controls {
+  width: 100%;
+  max-width: 100%;               /* Let it stretch natively to match the parent track */
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+/* ==========================================
+   CUSTOM INTERACTIVE SLIDING SWITCH ANATOMY
+   ========================================== */
+.theme-toggle-track {
+  position: relative;
+  width: 64px;
+  height: 32px;
+  background-color: var(--color-toggle-track);
+  border-radius: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px;
+  box-sizing: border-box;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toggle-icon {
+  font-size: 1rem;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Sliding Floating Circle Thumb */
+.theme-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 26px;
+  height: 26px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 2;
+}
+
+body:not([data-theme="dark"]) .theme-toggle-thumb {
+  transform: translateX(0);
+}
+
+body[data-theme="dark"] .theme-toggle-thumb {
+  transform: translateX(32px);
+}
+
+/* ==========================================
+   SCROLLABLE RESULT VIEWPORT PANELS (WIDE & SNUG)
+   ========================================== */
 .results-content { 
-    margin-top: 40px; 
-    border-top: 1px solid var(--color-border); 
-    padding-top: 20px; 
+  flex: 1;
+  width: 100%;
+  max-width: 100%;               /* Stripped layout bounds so cards fill screen canvas snugly */
+  margin: 0; 
+  padding: 24px 24px 60px 24px;  /* Clean perimeter padding gaps against monitor frame */
+  box-sizing: border-box;
+  overflow-y: auto;
 }
 
-.result-card { 
-    background: white; 
-    padding: 30px; 
-    margin-bottom: 30px; 
-    border-left: 5px solid var(--color-primary);
-    border-radius: 0 8px 8px 0;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    line-height: 1.8; 
+/* Standard result card */
+.result-card {
+  background: var(--color-card);
+  padding: 30px;                 /* Luxurious readability interior space */
+  margin-bottom: 25px;
+  border-left: 5px solid var(--color-primary);
+  border-radius: 0 8px 8px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  width: 100%;                   /* Snugly fills out the right viewport canvas perfectly */
+  box-sizing: border-box;
 }
 
-/* ✅ NEW: Styling for the text container inside the card */
+/* Error card configuration */
+.error-card {
+  background: var(--color-error-bg);
+  border-left: 5px solid var(--color-error);
+}
+
+.error-card .page-address {
+  background-color: var(--color-error);
+  color: white;
+}
+
 .text-display {
-    color: var(--color-foreground);
-    font-size: 1.05rem;
+  color: var(--color-foreground);
+  font-size: 1.05rem;
+  line-height: 1.7;
+  font-family: var(--font-serif);
 }
 
 .page-address {
-    display: inline-block;
-    background-color: var(--color-primary);
-    color: white;
-    padding: 3px 12px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    margin-bottom: 15px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+  background-color: var(--color-primary);
+  color: #1e222b;                /* High-contrast text layout balance against bright light blue token */
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 14px;
+  display: inline-block;
+  text-transform: uppercase;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.result-card p {
-    margin-bottom: 1.2em;
+body:not([data-theme="dark"]) .page-address {
+  color: white;                  /* Restores white text styling over dark blue tag in light mode */
 }
 
-b { background: hsl(35, 40%, 94%); color: var(--color-primary); padding: 0 3px; }
-
-.file-upload-wrapper {
-    position: relative;
-    border: 2px dashed var(--color-border);
-    border-radius: 8px;
-    padding: 30px;
-    text-align: center;
-    background-color: white;
-    transition: all 0.3s ease;
-    cursor: pointer;
-    margin-bottom: 10px;
-}
-
-.file-upload-wrapper.dragover {
-    border-color: var(--color-primary);
-    background-color: hsl(215, 30%, 96%);
-}
-
-.file-upload-wrapper input[type="file"] {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    opacity: 0;
-    cursor: pointer;
-}
-
-mark {
-    background-color: hsl(45, 100%, 85%);
-    color: inherit;
-    padding: 2px 4px;
-    border-radius: 2px;
-}
-
-@media (max-width: 600px) {
-    body { padding: 15px; }
-    #root { padding: 20px; }
-    header h1 { font-size: 2.2rem; }
-    .submit-btn { width: 100%; }
-}
-
-/* ✅ NEW: Styling for the AI Assessment container */
 .assessment-box {
-    margin-top: 20px;
-    padding: 15px;
-    background-color: hsl(210, 20%, 96%); /* Light academic grey-blue */
-    border-left: 4px solid var(--color-primary); /* Dark blue accent line */
-    border-radius: 4px;
+  margin-top: 18px;
+  padding: 14px;
+  background-color: hsl(210, 20%, 96%);
+  border-left: 4px solid var(--color-primary);
+  border-radius: 4px;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
-.assessment-box strong {
-    display: block;
-    margin-bottom: 5px;
-    font-size: 0.9rem;
-    color: var(--color-primary);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+body[data-theme="dark"] .assessment-box strong {
+  color: var(--color-primary);   /* Illuminates the assessment label in light blue */
 }
 
-.assessment-box i {
-    color: hsl(210, 10%, 35%);
-    font-size: 0.95rem;
-    line-height: 1.5;
+body[data-theme="dark"] .assessment-box {
+  background-color: #21252b;     /* Keeps background solid charcoal inside dark mode card systems */
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--color-foreground);
+  opacity: 0.5;
+  margin-top: 140px;
+}
+
+footer {
+  margin-top: auto;
+  padding-top: 20px;
+  font-size: 0.7rem;
+  opacity: 0.4;
+}
+
+/* ==============================
+   RESPONSIVE
+   ============================== */
+@media (max-width: 850px) {
+  .dashboard-wrapper { flex-direction: column; overflow-y: auto; }
+  .sidebar { flex: 0 0 auto; width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--color-border); }
+  .results-container { height: auto; overflow: visible; }
+  .results-header { padding: 10px 20px; }
+  .results-content { max-width: 100%; padding: 20px; overflow-y: visible; }
 }

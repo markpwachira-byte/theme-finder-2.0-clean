@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, jsonify
 import re
 import pdfplumber
 import os
@@ -44,8 +44,17 @@ ai_knowledge = {
     }
 }
 
-# Use /tmp for Render deployment as it's a writable directory
-UPLOAD_FOLDER = '/tmp'
+# ==============================
+# DYNAMIC PATH CONFIGURATION
+# ==============================
+if os.name == 'nt':
+    UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
+else:
+    UPLOAD_FOLDER = '/tmp'
+
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # ==============================
@@ -90,51 +99,61 @@ def highlight_content(text, theme_name):
 
     return " ".join(highlighted_page), assessment
 
-@app.route("/", methods=["GET", "POST"])
+# ==============================
+# ROUTES
+# ==============================
+@app.route("/", methods=["GET"])
 def index():
+    return render_template("index.html", results=[])
+
+@app.route("/upload", methods=["POST"])
+def upload_file():
     results = []
     
-    if request.method == "POST":
-        file = request.files.get("file")
-        theme = request.form.get("theme", "").lower().strip()
-        page_num = request.form.get("page_number", "").strip()
+    file = request.files.get("file")
+    theme = request.form.get("theme", "").lower().strip()
+    page_num = request.form.get("page_number", "").strip()
 
-        if file and file.filename != '':
-            filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
+    if not file or file.filename == '':
+        return jsonify({"error": "No file uploaded"}), 400
 
-            try:
-                with pdfplumber.open(filepath) as pdf:
-                    # Mode A: Theme Search
-                    if theme and not page_num:
-                        for i, page in enumerate(pdf.pages):
-                            page_text = page.extract_text()
-                            if page_text:
-                                highlighted, assessment = highlight_content(page_text, theme)
-                                if "<mark" in highlighted:
-                                    results.append({"page": i + 1, "content": highlighted, "assessment": assessment})
-                    
-                    # Mode B: Page Analysis
-                    elif page_num.isdigit():
-                        idx = int(page_num) - 1
-                        if 0 <= idx < len(pdf.pages):
-                            page_text = pdf.pages[idx].extract_text() or ""
-                            display, assessment = highlight_content(page_text, theme) if theme else (page_text, "Direct view.")
-                            results.append({"page": page_num, "content": display, "assessment": assessment})
-                
-                # Cleanup: Delete file after processing to prevent storage errors
-                if os.path.exists(filepath):
-                    os.remove(filepath)
-                    
-            except Exception as e:
-                results.append({"page": "Error", "content": f"PDF Error: {str(e)}", "assessment": "Failed to read file."})
+    filename = secure_filename(file.filename)
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    
+    file.save(filepath)
 
-    return render_template("index.html", results=results)
+    try:
+        with pdfplumber.open(filepath) as pdf:
+            # Mode A: Theme Search
+            if theme and not page_num:
+                for i, page in enumerate(pdf.pages):
+                    page_text = page.extract_text()
+                    if page_text:
+                        highlighted, assessment = highlight_content(page_text, theme)
+                        if "<mark" in highlighted:
+                            results.append({"page": i + 1, "content": highlighted, "assessment": assessment})
+            
+            # Mode B: Page Analysis
+            elif page_num.isdigit():
+                idx = int(page_num) - 1
+                if 0 <= idx < len(pdf.pages):
+                    page_text = pdf.pages[idx].extract_text() or ""
+                    display, assessment = highlight_content(page_text, theme) if theme else (page_text, "Direct view.")
+                    results.append({"page": page_num, "content": display, "assessment": assessment})
+        
+        # Cleanup file after processing
+        if os.path.exists(filepath):
+            os.remove(filepath)
+            
+        return jsonify({"results": results}), 200
+            
+    except Exception as e:
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        return jsonify({"error": f"PDF Error: {str(e)}"}), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-
 
 
