@@ -7,6 +7,18 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 
 # ==============================
+# UPLOAD FOLDER CONFIGURATION
+# ==============================
+if os.name == 'nt':  # Windows (local)
+    UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+else:  # Linux (Render)
+    UPLOAD_FOLDER = '/tmp'
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB limit
+
+# ==============================
 # AI KNOWLEDGE BASE (The Brain)
 # ==============================
 ai_knowledge = {
@@ -44,9 +56,6 @@ ai_knowledge = {
     }
 }
 
-UPLOAD_FOLDER = '/tmp'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
 # ==========================================
 # INSTANCE 2 LOGIC: GLOBAL THEME SCANNER
 # ==========================================
@@ -54,24 +63,22 @@ def scan_all_themes_on_page(text):
     text = text.replace('\n', ' ')
     sentences = re.split(r'(?<=[.!?]) +', text)
     highlighted_page = []
-    assessment_details = {} # To store evidence for each theme
+    assessment_details = {}
 
     for sentence in sentences:
         found_themes_in_sentence = []
-        
+
         for theme, rules in ai_knowledge.items():
-            # Check Vetoes first
-            if any(re.search(rf"\b{v}\b", sentence, re.I) for v in rules["vetoes"]):
+            if any(re.search(rf"\b{re.escape(v)}\b", sentence, re.I) for v in rules["vetoes"]):
                 continue
-            
-            # Check Anchors
+
             score = 0
             found_kws = []
             for kw, weight in rules["anchors"].items():
-                if re.search(rf"\b{kw}\b", sentence, re.I):
+                if re.search(rf"\b{re.escape(kw)}\b", sentence, re.I):
                     score += weight
                     found_kws.append(kw)
-            
+
             if score > 0.4:
                 found_themes_in_sentence.append(theme.capitalize())
                 if theme not in assessment_details:
@@ -84,7 +91,6 @@ def scan_all_themes_on_page(text):
         else:
             highlighted_page.append(sentence)
 
-    # Build the AI Assessment Message
     if not assessment_details:
         assessment_msg = "AI Assessment: No significant themes detected on this page."
     else:
@@ -112,7 +118,7 @@ def highlight_content(text, theme_name):
     found_keywords = []
 
     for sentence in sentences:
-        if any(re.search(rf"\b{v}\b", sentence, re.I) for v in vetoes):
+        if any(re.search(rf"\b{re.escape(v)}\b", sentence, re.I) for v in vetoes):
             highlighted_page.append(sentence)
             continue
 
@@ -121,11 +127,11 @@ def highlight_content(text, theme_name):
         found_any = False
 
         for kw, weight in anchors.items():
-            if re.search(rf"\b{kw}\b", sentence, flags=re.IGNORECASE):
+            if re.search(rf"\b{re.escape(kw)}\b", sentence, flags=re.IGNORECASE):
                 score += weight
                 found_any = True
                 found_keywords.append(kw.lower())
-                temp_sentence = re.sub(rf"\b({kw})\b", r"<b>\1</b>", temp_sentence, flags=re.IGNORECASE)
+                temp_sentence = re.sub(rf"\b({re.escape(kw)})\b", r"<b>\1</b>", temp_sentence, flags=re.IGNORECASE)
 
         if found_any and score > 0.4:
             highlighted_page.append(f"<mark style='background-color: #fff3cd;'>{temp_sentence}</mark>")
@@ -133,7 +139,7 @@ def highlight_content(text, theme_name):
             highlighted_page.append(sentence)
 
     unique_kw = sorted(list(set(found_keywords)))
-    assessment = f"AI identified '{theme_name}' theme via: {', '.join(unique_kw[:3])}." if unique_kw else "No strong evidence."
+    assessment = f"AI identified '{theme_name}' theme via: {', '.join(unique_kw[:5])}." if unique_kw else "No strong evidence."
 
     return " ".join(highlighted_page), assessment
 
@@ -142,56 +148,61 @@ def highlight_content(text, theme_name):
 # ==============================
 @app.route("/", methods=["GET"])
 def index():
-    return render_template("index.html", results=[])
+    return render_template("index.html")
 
 @app.route("/upload", methods=["POST"])
 def upload_file():
     results = []
+    filepath = None
 
-    if request.method == "POST":
-        file = request.files.get("file")
-        theme = request.form.get("theme", "").lower().strip()
-        page_num = request.form.get("page_number", "").strip()
+    file = request.files.get("file")
+    theme = request.form.get("theme", "").lower().strip()
+    page_num = request.form.get("page_number", "").strip()
 
     if not file or file.filename == '':
-        return jsonify({"error": "No file uploaded"}), 400
+        return jsonify(error="No file uploaded."), 400
+
+    if not file.filename.lower().endswith('.pdf'):
+        return jsonify(error="Only PDF files are supported."), 400
 
     filename = secure_filename(file.filename)
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    
-    file.save(filepath)
 
-            try:
-                with pdfplumber.open(filepath) as pdf:
-                    # INSTANCE 1: Theme Search (Whole book for specific theme)
-                    if theme and not page_num:
-                        for i, page in enumerate(pdf.pages):
-                            page_text = page.extract_text()
-                            if page_text:
-                                highlighted, assessment = highlight_content(page_text, theme)
-                                if "<mark" in highlighted:
-                                    results.append({"page": i + 1, "content": highlighted, "assessment": assessment})
+    try:
+        file.save(filepath)
 
-                    # INSTANCE 2: Global Page Analysis (Specific page, all themes)
-                    elif page_num.isdigit():
-                        idx = int(page_num) - 1
-                        if 0 <= idx < len(pdf.pages):
-                            page_text = pdf.pages[idx].extract_text() or ""
-                            
-                            if theme: # Targeted Page Search (Existing feature)
-                                display, assessment = highlight_content(page_text, theme)
-                            else: # NEW UPGRADE: Global Scan (No theme chosen, scan all)
-                                display, assessment = scan_all_themes_on_page(page_text)
-                            
-                            results.append({"page": page_num, "content": display, "assessment": assessment})
+        with pdfplumber.open(filepath) as pdf:
+            if theme and not page_num:
+                for i, page in enumerate(pdf.pages):
+                    page_text = page.extract_text()
+                    if page_text:
+                        highlighted, assessment = highlight_content(page_text, theme)
+                        if "<mark" in highlighted:
+                            results.append({"page": i + 1, "content": highlighted, "assessment": assessment})
 
-                if os.path.exists(filepath):
-                    os.remove(filepath)
+            elif page_num.isdigit():
+                idx = int(page_num) - 1
+                if 0 <= idx < len(pdf.pages):
+                    page_text = pdf.pages[idx].extract_text() or ""
+                    if theme:
+                        display, assessment = highlight_content(page_text, theme)
+                    else:
+                        display, assessment = scan_all_themes_on_page(page_text)
+                    results.append({"page": page_num, "content": display, "assessment": assessment})
+                else:
+                    return jsonify(error=f"Page {page_num} does not exist in this document."), 400
 
-            except Exception as e:
-                results.append({"page": "Error", "content": f"PDF Error: {str(e)}", "assessment": "Failed to read file."})
+            elif page_num:
+                return jsonify(error=f"'{page_num}' is not a valid page number."), 400
 
-    return render_template("index.html", results=results)
+    except Exception as e:
+        return jsonify(error=f"PDF Error: {str(e)}"), 500
+
+    finally:
+        if filepath and os.path.exists(filepath):
+            os.remove(filepath)
+
+    return jsonify(results=results)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
